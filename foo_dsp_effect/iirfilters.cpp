@@ -53,9 +53,18 @@ void IIRFilter::init(int samplerate, int filter_type)
 
 	if (filter_type == RIAA_CD)
 	{
-		pf_gain = -9.477;
-		pf_qfact = 0.4845;
-		pf_freq = 5283;
+		if (samplerate == 44100)
+		{
+			pf_gain = -9.477;
+			pf_qfact = 0.4845;
+			pf_freq = 5283;
+		}
+		else if(samplerate == 48000)
+		{
+			pf_gain = -9.62;
+			pf_qfact = 0.479;
+			pf_freq = 5356;
+		}
 	}
 	
 	omega = 2 * M_PI * pf_freq/samplerate;

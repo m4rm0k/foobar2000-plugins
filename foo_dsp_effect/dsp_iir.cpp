@@ -152,17 +152,19 @@ private:
 			int p_gain; 
 			int p_type; 
 			dsp_iir::parse_preset( p_freq,p_gain,p_type, m_initData );
-			if (p_type <= 10)
+			if (p_type == 10)
 			{
+				slider_freq.EnableWindow(FALSE);
 				slider_gain.EnableWindow(FALSE);
-				slider_freq.EnableWindow(TRUE);
-				if (p_type == 10) slider_freq.EnableWindow(FALSE);
 			}
 			else
 			{
 				slider_freq.EnableWindow(TRUE);
 				slider_gain.EnableWindow(TRUE);
 			}
+			
+				
+			
 			slider_freq.SetPos(p_freq );
 			slider_gain.SetPos(p_gain);
 			w = GetDlgItem(IDC_IIRTYPE);
@@ -204,11 +206,9 @@ private:
 			dsp_iir::make_preset( p_freq,p_gain,p_type, preset );
 			m_callback.on_preset_changed( preset );
 		}
-		if (p_type <= 10)
-		{
-			slider_gain.EnableWindow(FALSE);
-			slider_freq.EnableWindow(TRUE);
-			if (p_type == 10) slider_freq.EnableWindow(FALSE);
+		if (p_type == 10){
+		slider_freq.EnableWindow(FALSE);
+		slider_gain.EnableWindow(FALSE);
 		}
 		else
 		{
@@ -222,26 +222,12 @@ private:
 	void RefreshLabel( int p_freq,int p_gain, int p_type)
 	{
 		pfc::string_formatter msg; 
-		if (p_type == 10)
-		{
-			msg << "Frequency: disabled";
-		}
-		else
-		{
-			msg << "Frequency: ";
-			msg << pfc::format_int(  p_freq ) << " Hz";
-		}
+		msg << "Frequency: ";
+		msg << pfc::format_int(  p_freq ) << " Hz";
 		::uSetDlgItemText( *this, IDC_IIRFREQINFO, msg );
 		msg.reset();
-		if (p_type <= 10)
-		{
-			msg << "Gain: disabled";
-		}
-		else
-		{
-			msg << "Gain: ";
-			msg << pfc::format_int(  p_gain) << " db";
-		}
+		msg << "Gain: ";
+		msg << pfc::format_int(  p_gain) << " db";
 		::uSetDlgItemText( *this, IDC_IIRGAININFO, msg );
 	}
 
