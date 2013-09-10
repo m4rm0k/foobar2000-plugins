@@ -99,7 +99,7 @@
     <Link>
       <AdditionalOptions>/Zi %(AdditionalOptions)</AdditionalOptions>
       <AdditionalDependencies>..\shared\shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>C:\apps\foobar2000\components\foo_dsp_effect.dll</OutputFile>
+      <OutputFile>foo_dsp_effect.dll</OutputFile>
       <AdditionalLibraryDirectories>..\shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

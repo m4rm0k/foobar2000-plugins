@@ -222,6 +222,17 @@ private:
 	void RefreshLabel( int p_freq,int p_gain, int p_type)
 	{
 		pfc::string_formatter msg; 
+
+		if (p_type == 10)
+		{
+			msg << "Frequency: disabled";
+			::uSetDlgItemText( *this, IDC_IIRFREQINFO, msg );
+			msg.reset();
+			msg << "Gain: disabled";
+			::uSetDlgItemText( *this, IDC_IIRGAININFO, msg );
+			return;
+
+		}
 		msg << "Frequency: ";
 		msg << pfc::format_int(  p_freq ) << " Hz";
 		::uSetDlgItemText( *this, IDC_IIRFREQINFO, msg );
