@@ -26,10 +26,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2012-08-30 19:53:44 +0000 (Thu, 30 Aug 2012) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: BPMDetect.h 150 2012-08-30 19:53:44Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -83,15 +83,6 @@ protected:
     /// RMS volume sliding average approximation level accumulator
     double RMSVolumeAccu;
 
-    /// Level below which to cut off signals
-    double cutCoeff;
-
-    /// Accumulator for accounting what proportion of samples exceed cutCoeff level
-    double aboveCutAccu;
-
-    /// Accumulator for total samples to calculate proportion of samples that exceed cutCoeff level
-    double totalAccu;
-
     /// Sample average counter.
     int decimateCount;
 
@@ -136,6 +127,9 @@ protected:
     void calcEnvelope(soundtouch::SAMPLETYPE *samples,  ///< Pointer to input/output data buffer
                       int numsamples                    ///< Number of samples in buffer
                       );
+
+    /// remove constant bias from xcorr data
+    void removeBias();
 
 public:
     /// Constructor.

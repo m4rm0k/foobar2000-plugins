@@ -11,10 +11,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2012-12-28 19:52:47 +0000 (Fri, 28 Dec 2012) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: PeakFinder.cpp 164 2012-12-28 19:52:47Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -103,7 +103,7 @@ int PeakFinder::findGround(const float *data, int peakpos, int direction) const
 
     pos = peakpos;
 
-    while ((pos > minPos) && (pos < maxPos))
+    while ((pos > minPos+1) && (pos < maxPos-1))
     {
         int prevpos;
 
@@ -192,11 +192,8 @@ double PeakFinder::getPeakCenter(const float *data, int peakpos) const
     gp1 = findGround(data, peakpos, -1);
     gp2 = findGround(data, peakpos, 1);
 
-    groundLevel = max(data[gp1], data[gp2]);
+    groundLevel = 0.5f * (data[gp1] + data[gp2]);
     peakLevel = data[peakpos];
-
-    if (groundLevel < 1e-9) return 0;                // ground level too small => detection failed
-    if ((peakLevel / groundLevel) < 1.3) return 0;   // peak less than 30% of the ground level => no good peak detected
 
     // calculate 70%-level of the peak
     cutLevel = 0.70f * peakLevel + 0.30f * groundLevel;
@@ -242,8 +239,6 @@ double PeakFinder::detectPeak(const float *data, int aminPos, int amaxPos)
     // - sometimes the highest peak can be Nth harmonic of the true base peak yet 
     // just a slightly higher than the true base
 
-    int hp = (int)(highPeak + 0.5);
-
     for (i = 3; i < 10; i ++)
     {
         double peaktmp, harmonic;
@@ -269,7 +264,7 @@ double PeakFinder::detectPeak(const float *data, int aminPos, int amaxPos)
         // now compare to highest detected peak
         i1 = (int)(highPeak + 0.5);
         i2 = (int)(peaktmp + 0.5);
-        if (data[i2] >= 0.5*data[i1])
+        if (data[i2] >= 0.4*data[i1])
         {
             // The harmonic is at least half as high primary peak,
             // thus use the harmonic peak instead

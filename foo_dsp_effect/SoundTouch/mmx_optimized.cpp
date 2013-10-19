@@ -20,10 +20,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2012-11-08 18:53:01 +0000 (Thu, 08 Nov 2012) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: mmx_optimized.cpp 160 2012-11-08 18:53:01Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -239,7 +239,7 @@ void FIRFilterMMX::setCoefficients(const short *coeffs, uint newLength, uint uRe
     // Ensure that filter coeffs array is aligned to 16-byte boundary
     delete[] filterCoeffsUnalign;
     filterCoeffsUnalign = new short[2 * newLength + 8];
-    filterCoeffsAlign = (short *)(((ulong)filterCoeffsUnalign + 15) & -16);
+    filterCoeffsAlign = (short *)SOUNDTOUCH_ALIGN_POINTER_16(filterCoeffsUnalign);
 
     // rearrange the filter coefficients for mmx routines 
     for (i = 0;i < length; i += 4) 

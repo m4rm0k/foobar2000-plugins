@@ -41,10 +41,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2013-06-12 15:24:44 +0000 (Wed, 12 Jun 2013) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: SoundTouch.cpp 171 2013-06-12 15:24:44Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -143,10 +143,11 @@ uint SoundTouch::getVersionId()
 // Sets the number of channels, 1 = mono, 2 = stereo
 void SoundTouch::setChannels(uint numChannels)
 {
-    if (numChannels != 1 && numChannels != 2) 
+    /*if (numChannels != 1 && numChannels != 2) 
     {
-        ST_THROW_RT_ERROR("Illegal number of channels");
-    }
+        //ST_THROW_RT_ERROR("Illegal number of channels");
+		return;
+    }*/
     channels = numChannels;
     pRateTransposer->setChannels((int)numChannels);
     pTDStretch->setChannels((int)numChannels);
@@ -345,12 +346,19 @@ void SoundTouch::putSamples(const SAMPLETYPE *samples, uint nSamples)
 void SoundTouch::flush()
 {
     int i;
-    uint nOut;
-    SAMPLETYPE buff[128];
+    int nUnprocessed;
+    int nOut;
+    SAMPLETYPE *buff=(SAMPLETYPE*)alloca(64*channels*sizeof(SAMPLETYPE));
 
-    nOut = numSamples();
+    // check how many samples still await processing, and scale
+    // that by tempo & rate to get expected output sample count
+    nUnprocessed = numUnprocessedSamples();
+    nUnprocessed = (int)((double)nUnprocessed / (tempo * rate) + 0.5);
 
-    memset(buff, 0, 128 * sizeof(SAMPLETYPE));
+    nOut = numSamples();        // ready samples currently in buffer ...
+    nOut += nUnprocessed;       // ... and how many we expect there to be in the end
+    
+    memset(buff, 0, 64 * channels * sizeof(SAMPLETYPE));
     // "Push" the last active samples out from the processing pipeline by
     // feeding blank samples into the processing pipeline until new, 
     // processed samples appear in the output (not however, more than 
@@ -358,7 +366,16 @@ void SoundTouch::flush()
     for (i = 0; i < 128; i ++) 
     {
         putSamples(buff, 64);
-        if (numSamples() != nOut) break;  // new samples have appeared in the output!
+        if ((int)numSamples() >= nOut) 
+        {
+            // Enough new samples have appeared into the output!
+            // As samples come from processing with bigger chunks, now truncate it
+            // back to maximum "nOut" samples to improve duration accuracy 
+            adjustAmountOfSamples(nOut);
+
+            // finish
+            break;  
+        }
     }
 
     // Clear working buffers

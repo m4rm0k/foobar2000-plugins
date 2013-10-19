@@ -15,10 +15,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2012-11-08 18:53:01 +0000 (Thu, 08 Nov 2012) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: FIFOSampleBuffer.cpp 160 2012-11-08 18:53:01Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -177,7 +177,7 @@ void FIFOSampleBuffer::ensureCapacity(uint capacityRequirement)
             ST_THROW_RT_ERROR("Couldn't allocate memory!\n");
         }
         // Align the buffer to begin at 16byte cache line boundary for optimal performance
-        temp = (SAMPLETYPE *)(((ulong)tempUnaligned + 15) & (ulong)-16);
+        temp = (SAMPLETYPE *)SOUNDTOUCH_ALIGN_POINTER_16(tempUnaligned);
         if (samplesInBuffer)
         {
             memcpy(temp, ptrBegin(), samplesInBuffer * channels * sizeof(SAMPLETYPE));
@@ -259,3 +259,16 @@ void FIFOSampleBuffer::clear()
     samplesInBuffer = 0;
     bufferPos = 0;
 }
+
+
+/// allow trimming (downwards) amount of samples in pipeline.
+/// Returns adjusted amount of samples
+uint FIFOSampleBuffer::adjustAmountOfSamples(uint numSamples)
+{
+    if (numSamples < samplesInBuffer)
+    {
+        samplesInBuffer = numSamples;
+    }
+    return samplesInBuffer;
+}
+

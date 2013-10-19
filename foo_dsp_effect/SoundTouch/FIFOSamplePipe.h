@@ -17,10 +17,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2012-06-13 19:29:53 +0000 (Wed, 13 Jun 2012) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: FIFOSamplePipe.h 143 2012-06-13 19:29:53Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -114,6 +114,11 @@ public:
 
     /// Clears all the samples.
     virtual void clear() = 0;
+
+    /// allow trimming (downwards) amount of samples in pipeline.
+    /// Returns adjusted amount of samples
+    virtual uint adjustAmountOfSamples(uint numSamples) = 0;
+
 };
 
 
@@ -214,6 +219,14 @@ public:
     {
         return output->isEmpty();
     }
+
+    /// allow trimming (downwards) amount of samples in pipeline.
+    /// Returns adjusted amount of samples
+    virtual uint adjustAmountOfSamples(uint numSamples)
+    {
+        return output->adjustAmountOfSamples(numSamples);
+    }
+
 };
 
 }

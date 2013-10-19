@@ -13,10 +13,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date$
+// Last changed  : $Date: 2013-06-12 15:24:44 +0000 (Wed, 12 Jun 2013) $
 // File revision : $Revision: 4 $
 //
-// $Id$
+// $Id: TDStretch.h 171 2013-06-12 15:24:44Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -147,6 +147,7 @@ protected:
 
     virtual void overlapStereo(SAMPLETYPE *output, const SAMPLETYPE *input) const;
     virtual void overlapMono(SAMPLETYPE *output, const SAMPLETYPE *input) const;
+    virtual void overlapMulti(SAMPLETYPE *output, const SAMPLETYPE *input) const;
 
     void clearMidBuffer();
     void overlap(SAMPLETYPE *output, const SAMPLETYPE *input, uint ovlPos) const;
