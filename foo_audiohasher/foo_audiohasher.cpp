@@ -266,6 +266,25 @@ class hasher_thread : public threaded_process_callback
 		}
 	}
 
+		void report_error( const char * message, metadb_handle_list tracks )
+		{
+			hasher_result * result = NULL;
+			try
+			{
+				result = new hasher_result( hasher_result::error );
+				result->m_error_message = message;
+				result->m_handles = tracks;
+				{
+					insync( lock_output_list );
+					output_list.add_item( result );
+				}
+			}
+			catch (...)
+			{
+				delete result;
+			}
+		}
+
 
 	void scanner_process()
 	{
@@ -302,9 +321,35 @@ class hasher_thread : public threaded_process_callback
 				InterlockedDecrement( &input_items_remaining );
 				update_status();
 			}
-			catch(...)
+			catch (exception_aborted & e)
 			{
+				if ( m_current_job )
+				{
+					report_error( e.what(), m_current_job->m_handles );
 
+					{
+						insync(lock_input_name_list);
+						for ( unsigned i = 0; i < m_current_job->m_names.get_count(); i++ )
+						{
+							input_name_list.remove_item( m_current_job->m_names[ i ] );
+						}
+					}
+				}
+				delete m_current_job;
+				break;
+			}
+			catch (...)
+			{
+				if ( m_current_job )
+				{
+					insync(lock_input_name_list);
+					for ( unsigned i = 0; i < m_current_job->m_names.get_count(); i++ )
+					{
+						input_name_list.remove_item( m_current_job->m_names[ i ] );
+					}
+				}
+				delete m_current_job;
+				throw;
 			}
 			if ( m_current_job )
 			{
