@@ -81,10 +81,15 @@
       <TurnOffAssemblyGeneration>false</TurnOffAssemblyGeneration>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
+      <OutputFile>C:\apps\foobar2000\components\foo_audiohasher.dll</OutputFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="foo_audiohasher.cpp" />
+    <ClCompile Include="foo_r128scan.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="hash\sha1.c" />
   </ItemGroup>
   <ItemGroup>
