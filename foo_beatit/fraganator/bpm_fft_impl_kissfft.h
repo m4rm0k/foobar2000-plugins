@@ -25,14 +25,16 @@ public:
 	double * get_output_buffer();
 
 private:
-	typedef pfc::ptrholder_t<double, releaser_kissfft_free> buffer_ptr;
-	int fftlen;
-	kiss_fft_cpx * kiss_buffer;
-	kiss_fftr_cfg m_plan;
-	buffer_ptr m_input_buffer;
-	buffer_ptr m_output_buffer;
+	typedef pfc::ptrholder_t<kiss_fft_scalar, releaser_kissfft_free> kiss_fft_scalar_ptr;
+	typedef pfc::ptrholder_t<kiss_fft_cpx, pfc::releaser_free> kiss_fft_complex_ptr;
+	typedef pfc::ptrholder_t<kiss_fft_state, pfc::releaser_free> kiss_fft_state_ptr;
 
-	static critical_section2 g_plan_mutex;
+	int m_size;
+	kiss_fft_state_ptr m_plan;
+	kiss_fft_scalar_ptr m_input_buffer;
+	kiss_fft_scalar_ptr m_output_buffer;
+	kiss_fft_complex_ptr m_complex_input_buffer;
+	kiss_fft_complex_ptr m_complex_output_buffer;
 };
 
 #endif // __BPM_FFT_IMPL_kissfft_H__

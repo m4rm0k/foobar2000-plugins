@@ -1,68 +1,60 @@
-
 #include "bpm_fft_impl_kissfft.h"
 
-critical_section2 bpm_fft_impl_kissfft::g_plan_mutex;
-
 bpm_fft_impl_kissfft::bpm_fft_impl_kissfft():
-	m_plan(nullptr)
+m_plan(nullptr)
 {
 }
 
 bpm_fft_impl_kissfft::~bpm_fft_impl_kissfft()
 {
-	if (m_plan != nullptr)
-	{
-		c_insync2 lock(g_plan_mutex);
-
-		kiss_fft_cleanup();
-		free(kiss_buffer);
-	}
 }
 
 void bpm_fft_impl_kissfft::create_plan(int p_size)
 {
-	c_insync2 lock(g_plan_mutex);
+	m_plan = nullptr;
 
-	if (m_plan != nullptr)
-	{
-		kiss_fft_cleanup();
-		m_plan = nullptr;
-		free(kiss_buffer);
-	}
-
-	m_plan = kiss_fftr_alloc( p_size,0 ,0,0);
-	fftlen = p_size;
+	m_plan = kiss_fft_alloc(p_size, 0, 0, 0);
+	m_size = p_size;
 
 	m_input_buffer = (double*)KISS_FFT_MALLOC(p_size*sizeof(double));
 	m_output_buffer = (double*)KISS_FFT_MALLOC(p_size*sizeof(double));
-    kiss_buffer=(kiss_fft_cpx*)KISS_FFT_MALLOC(p_size*sizeof(kiss_fft_cpx));
 
+	m_complex_input_buffer = (kiss_fft_cpx*)KISS_FFT_MALLOC(p_size*sizeof(kiss_fft_cpx));
+	m_complex_output_buffer = (kiss_fft_cpx*)KISS_FFT_MALLOC(p_size*sizeof(kiss_fft_cpx));
 }
 
 void bpm_fft_impl_kissfft::execute_plan()
 {
-	PFC_ASSERT(m_plan != nullptr);
-	double * buf = m_input_buffer.get_ptr();
-	kiss_fftr(m_plan,buf,kiss_buffer);
-	double * ptr  = m_output_buffer.get_ptr();
-	for (int i=0;i<fftlen;i++)
+	PFC_ASSERT(m_plan.is_valid());
+
+	for (int index = 0; index < m_size; ++index)
 	{
-		ptr[i] = kiss_buffer[i].r*kiss_buffer[i].r +
-        kiss_buffer[i].i * kiss_buffer[i].i;
+		m_complex_input_buffer.get_ptr()[index].r = m_input_buffer.get_ptr()[index];
+		m_complex_input_buffer.get_ptr()[index].i = 0.0;
 	}
 
+	kiss_fft(m_plan.get_ptr(), m_complex_input_buffer.get_ptr(), m_complex_output_buffer.get_ptr());
+
+	for (int index = 0; index <= m_size / 2; ++index)
+	{
+		m_output_buffer.get_ptr()[index] = m_complex_output_buffer.get_ptr()[index].r;
+	}
+
+	for (int index = 1; index < (m_size + 1) / 2; ++index)
+	{
+		m_output_buffer.get_ptr()[m_size - index] = m_complex_output_buffer.get_ptr()[index].i;
+	}
 }
 
 void bpm_fft_impl_kissfft::destroy_plan()
 {
-	c_insync2 lock(g_plan_mutex);
+	m_plan.release();
 
-	if (m_plan != nullptr)
-	{
-		kiss_fft_cleanup();
-		m_plan = nullptr;
-		free(kiss_buffer);
-	}
+	m_input_buffer.release();
+	m_output_buffer.release();
+
+	m_complex_input_buffer.release();
+	m_complex_output_buffer.release();
 }
 
 double * bpm_fft_impl_kissfft::get_input_buffer()
