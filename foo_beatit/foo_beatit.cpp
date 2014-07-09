@@ -150,7 +150,7 @@ class hasher_thread : public threaded_process_callback
 {
 	critical_section lock_status;
 	threaded_process_status * status_callback;
-	double m_progress;
+	int m_progress;
 	unsigned thread_count;
 	abort_callback * m_abort;
 	pfc::array_t<HANDLE> m_extra_threads;
@@ -254,7 +254,6 @@ class hasher_thread : public threaded_process_callback
 					insync(lock_input_name_list);
 					input_name_list.add_item( m_current_job->m_names[ 0 ] );
 				}
-				update_status();
 				double beats;
 				get_track_beats( beats, m_current_job->m_handles[ 0 ], *status_callback, lock_status, *m_abort );
 				hasher_result * m_current_result = new hasher_result(hasher_result::track, m_current_job->m_handles);
@@ -304,7 +303,7 @@ class hasher_thread : public threaded_process_callback
 
 					{
 						insync(lock_status);
-						m_progress += double( m_current_job->m_names.get_count() ) / double( input_items_total );
+						
 					}
 
 					update_status();
@@ -379,9 +378,11 @@ class hasher_thread : public threaded_process_callback
 
 		{
 			insync( lock_status );
+			m_progress ++;
 			status_callback->set_title( title );
 			status_callback->set_item( paths );
-			status_callback->set_progress_float( m_progress );
+			status_callback->set_progress( m_progress,input_items_total);
+
 		}
 	}
 
@@ -935,7 +936,7 @@ public:
 				{
 				p_callback->add_job_track( input_files[ i ] );
 				}
-				threaded_process::g_run_modeless( p_callback, threaded_process::flag_show_abort | threaded_process::flag_show_progress | threaded_process::flag_show_item | threaded_process::flag_show_delayed, core_api::get_main_window(), "Audio hasher status" );
+				threaded_process::g_run_modeless( p_callback, threaded_process::flag_show_abort | threaded_process::flag_show_item | threaded_process::flag_show_delayed, core_api::get_main_window(), "Audio hasher status" );
 				break;
 			case 1:
 				do_manual();
