@@ -22,8 +22,8 @@ using namespace soundtouch;
 VALIDATE_COMPONENT_FILENAME("foo_beatit.dll");
 DECLARE_COMPONENT_VERSION(
 	"Beat It",
-	"0.2",
-	"A beat detection component for foobar2000 1.1 ->\n"
+	"0.3",
+	"A beat detection component for foobar2000 1.3 ->\n"
 	"Copyright (C) 2014 Brad Miller\n"
 	"http://mudlord.info\n"
 );
@@ -56,7 +56,9 @@ struct hasher_result
 	}
 };
 
-double hash_track_minibpm(double & beats,metadb_handle_ptr p_handle, double & p_progress, unsigned track_total, threaded_process_status & p_status, critical_section & p_critsec, abort_callback & p_abort )
+static void RunHashResultsPopup( pfc::ptr_list_t<hasher_result> & m_results, unsigned __int64 processing_duration, HWND p_parent );
+
+void get_track_beats(double & beats,metadb_handle_ptr p_handle, threaded_process_status & p_status, critical_section & p_critsec, abort_callback & p_abort )
 {
 	const t_uint32 decode_flags = input_flag_no_seeking | input_flag_no_looping; // tell the decoders that we won't seek and that we don't want looping on formats that support looping.
 	input_helper m_decoder;
@@ -65,15 +67,13 @@ double hash_track_minibpm(double & beats,metadb_handle_ptr p_handle, double & p_
 	
 	audio_chunk_impl_temporary m_chunk;
 	
-	double duration = 0, length = 0;
+	double length = 0;
 
-	
    if(bpm_algorithm == 0)
    {
 	   bpm_auto_analysis bpm(p_handle);
 	   double bpm_result = bpm.run_safe(p_status, p_abort);
 	   beats = bpm_result;
-	   return duration;
    }
 
    if (bpm_algorithm == 1)
@@ -104,31 +104,11 @@ double hash_track_minibpm(double & beats,metadb_handle_ptr p_handle, double & p_
 	{
 		p_abort.check();
 		bpm->process(m_chunk.get_data(),m_chunk.get_sample_count());
-		duration += m_chunk.get_duration();
-
-		if ( length )
-		{
-			insync(p_critsec);
-			p_progress += m_chunk.get_duration() / length / double(track_total);
-			p_status.set_progress_float( p_progress );
-		}
 	}
-
 	pfc::string_formatter msg;
 	beats = bpm->estimateTempo();
 	delete bpm;
-	
-	{
-		insync(p_critsec);
-		p_progress += ( length ? ( ( length - duration ) / length ) : 1.0 ) / double(track_total);
-		p_status.set_progress_float( p_progress );
-	}
-
-
    }
-
-
-
 
    if (bpm_algorithm == 2)
    {
@@ -142,51 +122,29 @@ double hash_track_minibpm(double & beats,metadb_handle_ptr p_handle, double & p_
 	   {
 		   m_file.release();
 	   }
-
 	   m_decoder.open( m_file, p_handle, input_flag_simpledecode, p_abort, false, true );
 	   m_decoder.get_info( p_handle->get_subsong_index(), m_info, p_abort );
 	   length = m_info.get_length();
-
 	   m_decoder.run( m_chunk, p_abort );
 	   int m_ch = m_chunk.get_channels();
 	   int srate = m_chunk.get_srate();
-
 	  BPMDetect* bpm  = new BPMDetect(m_ch,srate);
-
 	   while ( m_decoder.run( m_chunk, p_abort ) )
 	   {
 		   p_abort.check();
 		   bpm->inputSamples(m_chunk.get_data(),m_chunk.get_sample_count());
-		   duration += m_chunk.get_duration();
-
-		   if ( length )
-		   {
-			   insync(p_critsec);
-			   p_progress += m_chunk.get_duration() / length / double(track_total);
-			   p_status.set_progress_float( p_progress );
-		   }
 	   }
-
 	  beats = bpm->getBpm();
 	  delete bpm;
-
-	   {
-		   insync(p_critsec);
-		   p_progress += ( length ? ( ( length - duration ) / length ) : 1.0 ) / double(track_total);
-		   p_status.set_progress_float( p_progress );
-	   }
-
-
    }
 
-	return duration;
 
 }
 
 
 
 
-static void RunHashResultsPopup( pfc::ptr_list_t<hasher_result> & m_results, double sample_duration, unsigned __int64 processing_duration, HWND p_parent );
+
 
 class hasher_thread : public threaded_process_callback
 {
@@ -236,7 +194,6 @@ class hasher_thread : public threaded_process_callback
 
 		critical_section lock_output_list;
 		pfc::ptr_list_t<hasher_result> output_list;
-		double output_duration;
 
 		FILETIME start_time, end_time;
 
@@ -298,14 +255,13 @@ class hasher_thread : public threaded_process_callback
 					input_name_list.add_item( m_current_job->m_names[ 0 ] );
 				}
 				update_status();
-				double hashed_res;
-				double duration = hash_track_minibpm( hashed_res, m_current_job->m_handles[ 0 ], m_progress, input_items_total, *status_callback, lock_status, *m_abort );
+				double beats;
+				get_track_beats( beats, m_current_job->m_handles[ 0 ], *status_callback, lock_status, *m_abort );
 				hasher_result * m_current_result = new hasher_result(hasher_result::track, m_current_job->m_handles);
-				m_current_result->m_hashes = hashed_res;
+				m_current_result->m_hashes = beats;
 				{
 					insync(lock_output_list);
 					output_list.add_item( m_current_result );
-					output_duration += duration;
 				}
 				{
 					insync(lock_input_name_list);
@@ -475,7 +431,6 @@ public:
 	hasher_thread()
 	{
 		input_items_remaining = input_items_total = 0;
-		output_duration = 0;
 		m_progress = 0;
 	}
 
@@ -544,7 +499,7 @@ public:
 
 			unsigned __int64 timestamp = ((unsigned __int64)(high) << 32) + low;
 
-			RunHashResultsPopup( output_list, output_duration, timestamp, core_api::get_main_window() );
+			RunHashResultsPopup( output_list, timestamp, core_api::get_main_window() );
 		}
 	}
 
@@ -612,8 +567,8 @@ public:
 class CMyResultsPopup : public CDialogImpl<CMyResultsPopup>, public CDialogResize<CMyResultsPopup>
 {
 public:
-	CMyResultsPopup( const pfc::ptr_list_t<hasher_result> & initData, double sample_duration, unsigned __int64 processing_duration )
-		: m_sample_duration( sample_duration ), m_processing_duration( processing_duration )
+	CMyResultsPopup( const pfc::ptr_list_t<hasher_result> & initData, unsigned __int64 processing_duration )
+		:m_processing_duration( processing_duration )
 	{
 		for ( unsigned i = 0; i < initData.get_count(); i++ )
 		{
@@ -655,18 +610,11 @@ private:
 		DlgResize_Init();
 
 		double processing_duration = (double)(m_processing_duration) * 0.0000001;
-		double processing_ratio = m_sample_duration / processing_duration;
 
 		pfc::string8_fast temp;
 
 		temp = "Calculated in: ";
 		temp += pfc::format_time_ex( processing_duration );
-		if (bpm_algorithm != 0)
-		{
-			temp += ", speed: ";
-			temp += pfc::format_float( processing_ratio, 0, 2 );
-			temp += "x";
-		}
 		
 
 		uSetDlgItemText( m_hWnd, IDC_STATUS, temp );
@@ -881,8 +829,6 @@ private:
 		static_api_ptr_t<metadb_io_v2>()->update_info_async( list, new service_impl_t< rg_apply_filter >( data ), core_api::get_main_window(), 0, 0 );
 		//DestroyWindow();
 	}
-
-	double m_sample_duration;
 	unsigned __int64 m_processing_duration;
 
 	pfc::ptr_list_t<hasher_result> m_initData;
@@ -893,9 +839,9 @@ private:
 	pfc::stringcvt::string_os_from_utf8_fast m_convert;
 };
 
-static void RunHashResultsPopup( pfc::ptr_list_t<hasher_result> & p_data, double sample_duration, unsigned __int64 processing_duration, HWND p_parent )
+static void RunHashResultsPopup( pfc::ptr_list_t<hasher_result> & p_data, unsigned __int64 processing_duration, HWND p_parent )
 {
-	CMyResultsPopup * popup = new CWindowAutoLifetime<ImplementModelessTracking<CMyResultsPopup>>( p_parent, p_data, sample_duration, processing_duration );
+	CMyResultsPopup * popup = new CWindowAutoLifetime<ImplementModelessTracking<CMyResultsPopup>>( p_parent, p_data, processing_duration );
 }
 
 
