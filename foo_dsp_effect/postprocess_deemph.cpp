@@ -92,21 +92,21 @@ class deemph_postprocessor_entry : public decode_postprocessor_entry
 public:
 	virtual bool instantiate( const file_info & info, decode_postprocessor_instance::ptr & out )
 	{
-		if (info.info_get_int("samplerate") != 44100) return false;
+		int sr = (int)info.info_get_int("samplerate");
+		if (sr != 44100 && sr != 48000 && sr != 88200 && sr != 96000 && sr != 176400 && sr != 192000) return false;
+
 
 		const char* enabled = info.meta_get("pre_emphasis", 0);
 		if (enabled == NULL) enabled = info.meta_get("pre-emphasis", 0);
-		if (enabled == NULL)
-		{
-			return false;
-		}
+		if (enabled == NULL) return false;
 
 		if (pfc::stricmp_ascii(enabled, "1") == 0 || pfc::stricmp_ascii(enabled, "on") == 0 || pfc::stricmp_ascii(enabled, "yes") == 0)
 		{
 			console::print("Pre-emphasis detected and enabled in track. Running filter");
-			out = new service_impl_t<deemph_postprocessor_instance>;
+			out = new service_impl_t < deemph_postprocessor_instance > ;
 			return true;
 		}
+		return false;
 	}
 };
 static service_factory_single_t<deemph_postprocessor_entry> g_deemph_postprocessor_entry_factory;

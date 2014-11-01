@@ -53,17 +53,44 @@ void IIRFilter::init(int samplerate, int filter_type)
 
 	if (filter_type == RIAA_CD)
 	{
-		if (samplerate == 44100)
+		//thanks to lvqcl for coeffs
+		switch (samplerate)
 		{
-			pf_gain = -9.477;
-			pf_qfact = 0.4845;
-			pf_freq = 5283;
-		}
-		else if(samplerate == 48000)
-		{
-			pf_gain = -9.62;
-			pf_qfact = 0.479;
+		case 44100:
+			pf_gain = -9.465;
+			pf_qfact = 0.4850;
+			pf_freq = 5277;
+			break;
+		case 48000:
+			pf_gain = -9.605;
+			pf_qfact = 0.4858;
 			pf_freq = 5356;
+			break;
+		case 88200:
+			pf_gain = -10.155;
+			pf_qfact = 0.4970;
+			pf_freq = 5635;
+			break;
+		case 96000:
+			pf_gain = -10.200;
+			pf_qfact = 0.4975;
+			pf_freq = 5660;
+			break;
+		case 176400:
+			pf_gain = -10.3745;
+			pf_qfact = 0.4993;
+			pf_freq = 5764;
+			break;
+		case 192000:
+			pf_gain = -10.388;
+			pf_qfact = 0.4995;
+			pf_freq = 5772;
+			break;
+		default: // we cannot be here but ...
+			pf_gain = -9.465;
+			pf_qfact = 0.4850;
+			pf_freq = 5277;
+			break;
 		}
 	}
 	
