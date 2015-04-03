@@ -55,6 +55,16 @@
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
     <ClCompile Include="dsp_soundtouch.cpp" />
+    <ClCompile Include="SoundTouch\InterpolateCubic.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\InterpolateLinear.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\InterpolateShannon.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="dsp_rubberband.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -101,6 +111,15 @@
       <Filter>DSP</Filter>
     </ClInclude>
     <ClInclude Include="SoundTouch\SoundTouch.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\InterpolateCubic.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\InterpolateLinear.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\InterpolateShannon.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
   </ItemGroup>

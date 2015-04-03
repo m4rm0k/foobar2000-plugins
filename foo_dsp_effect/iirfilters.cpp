@@ -51,6 +51,9 @@ void IIRFilter::init(int samplerate, int filter_type)
 	yn1=0;
 	yn2=0;
 
+	//limit to nyquist
+	if (pf_freq > ((int)samplerate / 2.0)) pf_freq = (int)(samplerate / 2.0);
+
 	if (filter_type == RIAA_CD)
 	{
 		//thanks to lvqcl for coeffs

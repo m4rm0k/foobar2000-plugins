@@ -1,7 +1,7 @@
 #include "../SDK/foobar2000.h"
 #include "SoundTouch/SoundTouch.h"
 
-#define MYVERSION "0.15"
+#define MYVERSION "0.16"
 
 static pfc::string_formatter g_get_component_about()
 {
@@ -195,6 +195,7 @@ public:
 		return true;
 	}
 };
+
 
 static mainmenu_commands_factory_t < mainmenu_commands_sample >
 g_mainmenu_commands_sample_factory;
