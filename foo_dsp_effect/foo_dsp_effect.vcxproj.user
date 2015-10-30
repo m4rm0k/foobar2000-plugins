@@ -8,4 +8,10 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\..\..\..\..\..\apps\foobar2000</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommand>C:\apps\foobar2000\foobar2000.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>C:\apps\foobar2000</LocalDebuggerCommandArguments>
+    <LocalDebuggerWorkingDirectory>..\..\..\..\..\..\apps\foobar2000</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
 </Project>

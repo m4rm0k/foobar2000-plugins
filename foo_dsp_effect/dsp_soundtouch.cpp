@@ -11,6 +11,12 @@ static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp
 static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 #define BUFFER_SIZE 2048
 
+
+
+
+
+
+
 class dsp_pitch : public dsp_impl_base
 {
 	SoundTouch * p_soundtouch;
@@ -23,23 +29,19 @@ class dsp_pitch : public dsp_impl_base
 private:
 	void insert_chunks()
 	{
-			uint samples = p_soundtouch->numSamples();
-			if (!samples) return;
-			samplebuf.grow_size(BUFFER_SIZE * m_ch);
-			soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
-			do
+		uint samples;
+		soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
+		do
+		{
+			samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
+			if (samples > 0)
 			{
-				samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
-				if (samples > 0)
-				{
-					audio_chunk * chunk = insert_chunk(samples * m_ch);
-					chunk->set_channels(m_ch,m_ch_mask);
-					chunk->set_data_32(src, samples, m_ch, m_rate);
-				}
+				audio_chunk * chunk = insert_chunk(samples * m_ch);
+				chunk->set_channels(m_ch, m_ch_mask);
+				chunk->set_data_32(src, samples, m_ch, m_rate);
 			}
-			while (samples != 0);
-	}
-
+		} while (samples != 0);
+}
 
 public:
 	dsp_pitch( dsp_preset const & in ) : pitch_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
@@ -103,17 +105,18 @@ public:
 			p_soundtouch = new SoundTouch;
 			if (!p_soundtouch) return 0;
 			sample_buffer.set_size(BUFFER_SIZE*m_ch);
+			samplebuf.set_size(BUFFER_SIZE*m_ch);
 			p_soundtouch->setSampleRate(m_rate);
 			p_soundtouch->setChannels(m_ch);
 			p_soundtouch->setPitchSemiTones(pitch_amount);
 			st_enabled = true;
 			if (pitch_amount== 0)st_enabled = false;
-			bool usequickseek = false;
-			bool useaafilter = false; //seems clearer without it
+			bool usequickseek = true;
+			bool useaafilter = true; //seems clearer without it
 			p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, usequickseek);
 			p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 		}
-		samplebuf.grow_size(BUFFER_SIZE*m_ch);
+		
 
 		if (!st_enabled) return true;
 

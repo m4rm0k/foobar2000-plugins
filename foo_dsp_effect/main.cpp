@@ -1,12 +1,12 @@
 #include "../SDK/foobar2000.h"
 #include "SoundTouch/SoundTouch.h"
 
-#define MYVERSION "0.16"
+#define MYVERSION "0.20"
 
 static pfc::string_formatter g_get_component_about()
 {
 	pfc::string_formatter about;
-	about << "A special effect DSP for foobar2000 1.1 ->\n";
+	about << "A special effect DSP for foobar2000 1.3 ->\n";
 	about << "Written by mudlord.\n";
 	about << "Portions by Jon Watte, Jezar Wakefield, Chris Moeller, Gian-Carlo Pascutto.\n";
 	about << "Using SoundTouch library version "<< SOUNDTOUCH_VERSION << "\n";

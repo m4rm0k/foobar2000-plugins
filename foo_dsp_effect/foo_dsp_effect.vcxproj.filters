@@ -9,33 +9,6 @@
     <ClCompile Include="dsp_wahwah.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="postprocess_deemph.cpp" />
-    <ClCompile Include="SoundTouch\AAFilter.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\cpu_detect_x86_win.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\FIFOSampleBuffer.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\FIRFilter.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\mmx_optimized.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\PeakFinder.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\RateTransposer.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\sse_optimized.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTouch\TDStretch.cpp">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClCompile>
     <ClCompile Include="freeverb.cpp">
       <Filter>DSP</Filter>
     </ClCompile>
@@ -51,10 +24,23 @@
     <ClCompile Include="echo.cpp">
       <Filter>DSP</Filter>
     </ClCompile>
-    <ClCompile Include="SoundTouch\SoundTouch.cpp">
+    <ClCompile Include="dsp_soundtouch.cpp" />
+    <ClCompile Include="dsp_rubberband.cpp" />
+    <ClCompile Include="SoundTouch\AAFilter.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
-    <ClCompile Include="dsp_soundtouch.cpp" />
+    <ClCompile Include="SoundTouch\BPMDetect.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\cpu_detect_x86.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\FIFOSampleBuffer.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\FIRFilter.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
     <ClCompile Include="SoundTouch\InterpolateCubic.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
@@ -64,34 +50,27 @@
     <ClCompile Include="SoundTouch\InterpolateShannon.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
-    <ClCompile Include="dsp_rubberband.cpp" />
+    <ClCompile Include="SoundTouch\mmx_optimized.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\PeakFinder.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\RateTransposer.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\SoundTouch.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\sse_optimized.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundTouch\TDStretch.cpp">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
-    <ClInclude Include="SoundTouch\AAFilter.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\cpu_detect.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\FIFOSampleBuffer.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\FIRFilter.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\PeakFinder.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\RateTransposer.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\STTypes.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\TDStretch.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
     <ClInclude Include="freeverb.h">
       <Filter>DSP</Filter>
     </ClInclude>
@@ -110,7 +89,22 @@
     <ClInclude Include="circular_buffer.h">
       <Filter>DSP</Filter>
     </ClInclude>
-    <ClInclude Include="SoundTouch\SoundTouch.h">
+    <ClInclude Include="SoundTouch\AAFilter.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\BPMDetect.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\cpu_detect.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\FIFOSampleBuffer.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\FIFOSamplePipe.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\FIRFilter.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
     <ClInclude Include="SoundTouch\InterpolateCubic.h">
@@ -120,6 +114,21 @@
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
     <ClInclude Include="SoundTouch\InterpolateShannon.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\PeakFinder.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\RateTransposer.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\SoundTouch.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\STTypes.h">
+      <Filter>DSP\SoundTouch</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundTouch\TDStretch.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
   </ItemGroup>
