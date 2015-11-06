@@ -954,7 +954,7 @@ private:
 			float  pitch;
 			dsp_tempo::parse_preset(pitch,pitch_type, m_initData);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
-			slider_drytime.SetPos( (double)(pitch+50));
+			slider_drytime.SetPos( (double)(pitch+75));
 			RefreshLabel( pitch);
 		}
 		return TRUE;
@@ -968,7 +968,7 @@ private:
 	void OnChange(UINT, int id, CWindow)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 50;
+		pitch = slider_drytime.GetPos() - 75;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		{
