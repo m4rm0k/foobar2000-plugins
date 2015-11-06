@@ -10,45 +10,43 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 
 #define BUFFER_SIZE 2048
 
+
 class dsp_pitch : public dsp_impl_base
 {
-	RubberBandStretcher * rubber;
+	unsigned buffered;
+	bool st_enabled;
 	int m_rate, m_ch, m_ch_mask;
 	float pitch_amount;
 	circular_buffer<float>sample_buffer;
 	pfc::array_t<float>samplebuf;
+
+	RubberBandStretcher * rubber;
 	float **plugbuf;
 	float **m_scratch;
 
-	unsigned buffered;
-	bool st_enabled;
+
 private:
 	void insert_chunks()
 	{
-		
-		t_size samples = rubber->available();
-		if (!samples) return;
-		samplebuf.grow_size(buffered * m_ch);
-		do
+		while(1)
 		{
-
-			samples = rubber->retrieve(m_scratch,buffered);
+			t_size samples = rubber->available();
+			if (samples <= 0)break;
+			samples = rubber->retrieve(m_scratch,samples);
 			if (samples > 0)
 			{
-				samplebuf.grow_size(samples*m_ch);
 				float *data = samplebuf.get_ptr();
 				for (int c = 0; c < m_ch; ++c) {
 					int j = 0;
-					while (j < buffered) {
+					while (j < samples) {
 						data[j * m_ch + c] = m_scratch[c][j];
 						++j;
 					}
 				}
-				audio_chunk * chunk = insert_chunk(samples);
+				audio_chunk * chunk = insert_chunk(samples*m_ch);
 				chunk->set_data(data,samples,m_ch,m_rate);
 			}
 		}
-		while (samples != 0);
 	}
 
 
@@ -62,8 +60,11 @@ public:
 		st_enabled = true;
 	}
 	~dsp_pitch(){
-		if (rubber) 
-			delete rubber;
+		if (rubber)
+		{
+		   insert_chunks();
+		}
+		delete rubber;
 	    rubber = 0;
 	}
 
@@ -73,8 +74,6 @@ public:
 		// {A7FBA855-56D4-46AC-8116-8B2A8DF2FB34}
 		static const GUID guid = 
 		{ 0xabc792be, 0x276, 0x47bf, { 0xb2, 0x41, 0x7a, 0xcf, 0xc5, 0x21, 0xcb, 0x50 } };
-
-
 		return guid;
 	}
 
@@ -83,21 +82,17 @@ public:
 	}
 
 	virtual void on_endoftrack(abort_callback & p_abort) {
+		if (rubber)
+		{
+			insert_chunks();
+		}
 	}
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
-		//same as flush, only at end of playback
-		/*if (rubber && st_enabled)
+        if (rubber)
 		{
 			insert_chunks();
-			if (buffered)
-			{
-				sample_buffer.read(samplebuf.get_ptr(),buffered*m_ch);
-				rubber->process((float *const *)samplebuf.get_ptr(),buffered,false);
-				buffered = 0;
-			}
-			insert_chunks();	
-		}*/
+		}
 	}
 
 	// The framework feeds input to our DSP using this method.
@@ -126,12 +121,7 @@ public:
 
 			for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
 			for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
-			st_enabled = true;
-		//	if (pitch_amount== 0)st_enabled = false;
-			bool usequickseek = false;
-			bool useaafilter = false; //seems clearer without it
-
-			
+			st_enabled = true;	
 		}
 	
 
@@ -145,9 +135,8 @@ public:
 			src += todo * m_ch;
 			buffered += todo;
 			sample_count -= todo;
-			if (buffered == toCauseProcessing)
+			if (buffered ==toCauseProcessing)
 			{
-				samplebuf.grow_size(toCauseProcessing*m_ch);
 				float*data = samplebuf.get_ptr();
 				sample_buffer.read((float*)data, toCauseProcessing*m_ch);
 
@@ -167,6 +156,12 @@ public:
 	}
 
 	virtual void flush() {
+		{
+			if (rubber)
+			{
+				insert_chunks();
+			}
+		}
 		m_rate = 0;
 		m_ch = 0;
 		buffered = 0;
@@ -174,7 +169,7 @@ public:
 	}
 
 	virtual double get_latency() {
-		return (rubber && m_rate && st_enabled) ? ((double)(rubber->available() + buffered) / (double)m_rate) : 0;
+		return (rubber && m_rate && st_enabled) ? ((double)(rubber->getLatency()) / (double)m_rate) : 0;
 	}
 
 
@@ -291,35 +286,30 @@ class dsp_tempo : public dsp_impl_base
 	pfc::array_t<float>samplebuf;
 	float **plugbuf;
 	float **m_scratch;
-
 	unsigned buffered;
 	bool st_enabled;
 private:
 	void insert_chunks()
 	{
-
-		t_size samples = rubber->available();
-		if (!samples) return;
-		samplebuf.grow_size(buffered * m_ch);
-		do
+		while (1)
 		{
-
-			samples = rubber->retrieve(m_scratch, buffered);
+			t_size samples = rubber->available();
+			if (samples <= 0)break;
+			samples = rubber->retrieve(m_scratch, samples);
 			if (samples > 0)
 			{
-				samplebuf.grow_size(samples*m_ch);
 				float *data = samplebuf.get_ptr();
 				for (int c = 0; c < m_ch; ++c) {
 					int j = 0;
-					while (j < buffered) {
+					while (j < samples) {
 						data[j * m_ch + c] = m_scratch[c][j];
 						++j;
 					}
 				}
-				audio_chunk * chunk = insert_chunk(samples);
+				audio_chunk * chunk = insert_chunk(samples*m_ch);
 				chunk->set_data(data, samples, m_ch, m_rate);
 			}
-		} while (samples != 0);
+		}
 	}
 
 
@@ -354,21 +344,18 @@ public:
 	}
 
 	virtual void on_endoftrack(abort_callback & p_abort) {
+		if (rubber)
+		{
+			insert_chunks();
+		}
 	}
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
-		//same as flush, only at end of playback
-		/*if (rubber && st_enabled)
+		if (rubber)
 		{
-		insert_chunks();
-		if (buffered)
-		{
-		sample_buffer.read(samplebuf.get_ptr(),buffered*m_ch);
-		rubber->process((float *const *)samplebuf.get_ptr(),buffered,false);
-		buffered = 0;
+			insert_chunks();
 		}
-		insert_chunks();
-		}*/
+	
 	}
 
 	// The framework feeds input to our DSP using this method.
@@ -416,9 +403,8 @@ public:
 			src += todo * m_ch;
 			buffered += todo;
 			sample_count -= todo;
-			if (buffered == toCauseProcessing)
+			if (buffered >= toCauseProcessing)
 			{
-				samplebuf.grow_size(toCauseProcessing*m_ch);
 				float*data = samplebuf.get_ptr();
 				sample_buffer.read((float*)data, toCauseProcessing*m_ch);
 
@@ -445,7 +431,7 @@ public:
 	}
 
 	virtual double get_latency() {
-		return (rubber && m_rate && st_enabled) ? ((double)(rubber->available() + buffered) / (double)m_rate) : 0;
+		return (rubber && m_rate && st_enabled) ? ((double)(rubber->getLatency()) / (double)m_rate) : 0;
 	}
 
 

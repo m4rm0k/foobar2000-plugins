@@ -205,9 +205,11 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,252,54,50,14
     CONTROL         "",IDC_PITCH,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,6,24,300,18
     LTEXT           "Pitch : 111111 semitones",IDC_PITCHINFO,120,6,138,12
+    COMBOBOX        IDC_PITCHTYPE,111,54,84,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Algorithm",IDC_STATIC,69,57,36,9
 END
 
-IDD_TEMPO DIALOGEX 0, 0, 316, 69
+IDD_TEMPO DIALOGEX 0, 0, 317, 59
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Tempo DSP Configuration"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -216,6 +218,8 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,192,42,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,246,42,50,14
     CONTROL         "",IDC_TEMPO,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,24,288,18
+    COMBOBOX        IDC_TEMPOTYPE,105,42,84,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Algorithm",IDC_STATIC,63,45,36,9
 END
 
 IDD_RATE DIALOGEX 0, 0, 316, 69
@@ -296,9 +300,9 @@ BEGIN
     IDD_TEMPO, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 309
+        RIGHTMARGIN, 310
         TOPMARGIN, 7
-        BOTTOMMARGIN, 62
+        BOTTOMMARGIN, 52
     END
 
     IDD_RATE, DIALOG
@@ -318,6 +322,22 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_PITCH AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_TEMPO AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

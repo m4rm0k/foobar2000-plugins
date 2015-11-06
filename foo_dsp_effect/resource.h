@@ -91,8 +91,10 @@
 #define IDC_TEMPOENABLE                 1069
 #define IDC_DISPLAY_SLOWRATIO           1070
 #define IDC_TEMPOINFODUI                1070
+#define IDC_PITCHTYPE                   1070
 #define IDC_DYNAMICSDISPLAY_SLOWRATIO   1071
 #define IDC_RATEINFODUI2                1071
+#define IDC_TEMPOTYPE                   1071
 #define IDC_TEMPO                       1072
 #define IDC_PITCHENABLE2                1072
 #define IDC_RATEENABLE                  1072
@@ -106,9 +108,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
