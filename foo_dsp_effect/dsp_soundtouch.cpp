@@ -161,8 +161,7 @@ public:
 
 			if (pitch_shifter == 1)
 			{
-				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions;
-				options |= RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
+				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0, pow(2.0, pitch_amount / 12.0));
 				if (!rubber) return 0;
 				if (plugbuf)delete plugbuf;
@@ -457,9 +456,9 @@ public:
 
 			if (pitch_shifter == 1)
 			{
-				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions;
-				options |= RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
-				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0 + 0.01 *-pitch_amount, 1.0);
+				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
+				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
+				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				if (!rubber) return 0;
 				if (plugbuf)delete plugbuf;
 				if (m_scratch)delete m_scratch;
