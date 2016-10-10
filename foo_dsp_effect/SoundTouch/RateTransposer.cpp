@@ -10,7 +10,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2015-07-26 17:45:48 +0300 (Sun, 26 Jul 2015) $
+// Last changed  : $Date: 2015-07-26 14:45:48 +0000 (Sun, 26 Jul 2015) $
 // File revision : $Revision: 4 $
 //
 // $Id: RateTransposer.cpp 225 2015-07-26 14:45:48Z oparviai $
@@ -226,7 +226,7 @@ int TransposerBase::transpose(FIFOSampleBuffer &dest, FIFOSampleBuffer &src)
 {
     int numSrcSamples = src.numSamples();
     int sizeDemand = (int)((double)numSrcSamples / rate) + 8;
-    int numOutput = 0;
+    int numOutput;
     SAMPLETYPE *psrc = src.ptrBegin();
     SAMPLETYPE *pdest = dest.ptrEnd(sizeDemand);
 
