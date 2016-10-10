@@ -6,15 +6,13 @@
 static pfc::string_formatter g_get_component_about()
 {
 	pfc::string_formatter about;
-	about << "A special effect DSP for foobar2000 1.3 ->\n";
+	about << "A special effect DSP for foobar2000 1.1 ->\n";
 	about << "Written by mudlord.\n";
 	about << "Portions by Jon Watte, Jezar Wakefield, Chris Moeller, Gian-Carlo Pascutto.\n";
 	about << "Using SoundTouch library version "<< SOUNDTOUCH_VERSION << "\n";
 	about << "SoundTouch (c) Olli Parviainen\n";
 	return about;
 }
-
-
 
 class dsp_cfg_mainthread : public main_thread_callback {
 	dsp_preset_impl new_preset;
@@ -58,22 +56,18 @@ class dsp_menu_callback : public dsp_preset_edit_callback {
 public:
 	dsp_menu_callback(const dsp_preset & p_data) : m_data(p_data)
 	{
-		h_event = CreateEvent(NULL, FALSE, TRUE, L"DspMenuCallbackSync");
 		opened_configs.add_item(m_data);
-		dsp_entry::g_show_config_popup_v2(p_data, GetDesktopWindow(), *this);
+		dsp_entry::g_show_config_popup_v2(p_data, core_api::get_main_window(), *this);
 		opened_configs.remove_item(m_data);
 	}
 
 	~dsp_menu_callback()
 	{
-		CloseHandle(h_event);
 	}
 
 	void on_preset_changed(const dsp_preset & p_data)
 	{
 		// After callback has been processed
-		WaitForSingleObject(h_event, 5000);
-		ResetEvent(h_event);
 		opened_configs.replace_item(opened_configs.find_item(m_data), p_data);
 		service_impl_t<dsp_cfg_mainthread>* cb =
 			new service_impl_t<dsp_cfg_mainthread>(p_data, m_data, h_event);
@@ -86,15 +80,6 @@ public:
 		return opened_configs.find_item(p_data) < INFINITE;
 	}
 };
-
-DWORD __stdcall run_config(void *arg)
-{
-	dsp_preset_impl * preset = static_cast<dsp_preset_impl*>(arg);
-	dsp_menu_callback dmc(*preset);
-	delete preset;
-	return 0;
-}
-
 
 // {35FDAA75-AAC9-4EFE-9091-D12E7398EF4A}
 static const GUID g_mainmenu_group_id =
@@ -132,9 +117,10 @@ public:
 		}
 		else
 		{
-			// Will be deleted in run_config()
-			void * preset = static_cast<void*>(new dsp_preset_impl(chain.get_item(p_index-1)));
-			CloseHandle(CreateThread(NULL, 0, run_config, preset, 0, 0));
+
+			dsp_preset_impl * preset = static_cast<dsp_preset_impl*>(new dsp_preset_impl(chain.get_item(p_index - 1)));
+			dsp_menu_callback dmc(*preset);
+			delete preset;
 		}
 	}
 
@@ -197,8 +183,7 @@ public:
 };
 
 
-static mainmenu_commands_factory_t < mainmenu_commands_sample >
-g_mainmenu_commands_sample_factory;
+static mainmenu_commands_factory_t < mainmenu_commands_sample >g_mainmenu_commands_sample_factory;
 DECLARE_COMPONENT_VERSION_COPY(
 "Effect DSP",
 MYVERSION,
