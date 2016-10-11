@@ -1,12 +1,12 @@
 #include "../SDK/foobar2000.h"
 #include "SoundTouch/SoundTouch.h"
 
-#define MYVERSION "0.20"
+#define MYVERSION "0.17.1"
 
 static pfc::string_formatter g_get_component_about()
 {
 	pfc::string_formatter about;
-	about << "A special effect DSP for foobar2000 1.1 ->\n";
+	about << "A special effect DSP for foobar2000 1.3 ->\n";
 	about << "Written by mudlord.\n";
 	about << "Portions by Jon Watte, Jezar Wakefield, Chris Moeller, Gian-Carlo Pascutto.\n";
 	about << "Using SoundTouch library version "<< SOUNDTOUCH_VERSION << "\n";
@@ -17,16 +17,14 @@ static pfc::string_formatter g_get_component_about()
 class dsp_cfg_mainthread : public main_thread_callback {
 	dsp_preset_impl new_preset;
 	dsp_preset_impl old_preset;
-	HANDLE h_event;
 
 public:
 	dsp_cfg_mainthread(
-		const dsp_preset & n, const dsp_preset & p, HANDLE ev) :
-		new_preset(n), old_preset(p), h_event(ev)	{	}
+		const dsp_preset & n, const dsp_preset & p) :
+		new_preset(n), old_preset(p)	{	}
 
 	~dsp_cfg_mainthread()
 	{
-		SetEvent(h_event); // It's safe to process the next callback now
 	}
 
 	void callback_run() override
@@ -51,8 +49,6 @@ static pfc::list_t<dsp_preset_impl> opened_configs;
 
 class dsp_menu_callback : public dsp_preset_edit_callback {
 	dsp_preset_impl m_data;
-	HANDLE h_event;
-
 public:
 	dsp_menu_callback(const dsp_preset & p_data) : m_data(p_data)
 	{
@@ -69,8 +65,7 @@ public:
 	{
 		// After callback has been processed
 		opened_configs.replace_item(opened_configs.find_item(m_data), p_data);
-		service_impl_t<dsp_cfg_mainthread>* cb =
-			new service_impl_t<dsp_cfg_mainthread>(p_data, m_data, h_event);
+		service_impl_t<dsp_cfg_mainthread>* cb = new service_impl_t<dsp_cfg_mainthread>(p_data, m_data);
 		static_api_ptr_t<main_thread_callback_manager>()->add_callback(cb);
 		m_data.copy(p_data);
 	}
@@ -117,7 +112,6 @@ public:
 		}
 		else
 		{
-
 			dsp_preset_impl * preset = static_cast<dsp_preset_impl*>(new dsp_preset_impl(chain.get_item(p_index - 1)));
 			dsp_menu_callback dmc(*preset);
 			delete preset;
