@@ -65,8 +65,9 @@ public:
 	{
 		// After callback has been processed
 		opened_configs.replace_item(opened_configs.find_item(m_data), p_data);
-		service_impl_t<dsp_cfg_mainthread>* cb = new service_impl_t<dsp_cfg_mainthread>(p_data, m_data);
-		static_api_ptr_t<main_thread_callback_manager>()->add_callback(cb);
+		service_ptr_t<dsp_cfg_mainthread> ptr = new service_impl_t<dsp_cfg_mainthread>(p_data, m_data);
+		//service_impl_t<dsp_cfg_mainthread>* cb = new service_impl_t<dsp_cfg_mainthread>();
+		static_api_ptr_t<main_thread_callback_manager>()->add_callback(ptr);
 		m_data.copy(p_data);
 	}
 
