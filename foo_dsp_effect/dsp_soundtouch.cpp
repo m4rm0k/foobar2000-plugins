@@ -5,6 +5,7 @@
 #include "SoundTouch/SoundTouch.h"
 #include "rubberband/rubberband/RubberBandStretcher.h"
 #include "circular_buffer.h"
+#include "dsp_guids.h"
 using namespace soundtouch;
 using namespace RubberBand;
 
@@ -76,8 +77,9 @@ public:
 		rubber = 0;
 		plugbuf = 0;
 		m_scratch = 0;
-		parse_preset( pitch_amount,pitch_shifter, in );
-		st_enabled = true;
+		st_enabled = false;
+		parse_preset( pitch_amount,pitch_shifter,st_enabled, in );
+		
 	}
 	~dsp_pitch(){
 		if (p_soundtouch)
@@ -105,9 +107,8 @@ public:
 	static GUID g_get_guid() {
 		// Create these with guidgen.exe.
 		// {A7FBA855-56D4-46AC-8116-8B2A8DF2FB34}
-		static const GUID guid =
-		{ 0xa7fba855, 0x56d4, 0x46ac, { 0x81, 0x16, 0x8b, 0x2a, 0x8d, 0xf2, 0xfb, 0x34 } };
-		return guid;
+		
+		return guid_pitch;
 	}
 
 	static void g_get_name(pfc::string_base & p_out) {
@@ -150,6 +151,9 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
+		if (pitch_amount == 0.0)st_enabled = false;
+		if (!st_enabled) return true;
+
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
 			m_rate = chunk->get_srate();
@@ -182,8 +186,6 @@ public:
 					p_soundtouch->setSampleRate(m_rate);
 					p_soundtouch->setChannels(m_ch);
 					p_soundtouch->setPitchSemiTones(pitch_amount);
-					st_enabled = true;
-					if (pitch_amount == 0)st_enabled = false;
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
 					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, usequickseek);
@@ -193,7 +195,7 @@ public:
 		}
 		
 
-		if (!st_enabled) return true;
+	
 
 		if (rubber) {
 			while (sample_count > 0)
@@ -245,6 +247,7 @@ public:
 	}
 
 	virtual void flush() {
+		if (!st_enabled)return;
 		if (p_soundtouch){
 			p_soundtouch->clear();
 		}
@@ -259,13 +262,14 @@ public:
 	}
 
 	virtual double get_latency() {
+		if (!st_enabled) return 0;
 		if (p_soundtouch)
 		{
-			return (m_rate && st_enabled) ? (double)(p_soundtouch->numSamples() + buffered) / (double)m_rate:0;
+			return (double)(p_soundtouch->numSamples() + buffered) / (double)m_rate;
 		}
 		if (rubber)
 		{
-			return (m_rate && st_enabled) ? (double)(rubber->getLatency()) / (double)m_rate:0;
+			return (double)(rubber->getLatency()) / (double)m_rate;
 		}
 		return 0;
 	}
@@ -277,7 +281,7 @@ public:
 
 	static bool g_get_default_preset( dsp_preset & p_out )
 	{
-		make_preset( 0.0,0, p_out );
+		make_preset( 0.0,0,false, p_out );
 		return true;
 	}
 	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
@@ -285,22 +289,24 @@ public:
 		::RunDSPConfigPopup( p_data, p_parent, p_callback );
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( float pitch,int pitch_type, dsp_preset & out )
+	static void make_preset( float pitch,int pitch_type,bool enabled, dsp_preset & out )
 	{
 		dsp_preset_builder builder; 
 		builder << pitch; 
 		builder << pitch_type;
+		builder << enabled;
 		builder.finish( g_get_guid(), out );
 	}                        
-	static void parse_preset(float & pitch,int & pitch_type, const dsp_preset & in)
+	static void parse_preset(float & pitch,int & pitch_type,bool &enabled, const dsp_preset & in)
 	{
 		try
 		{
 			dsp_preset_parser parser(in);
 			parser >> pitch; 
 			parser >> pitch_type;
+			parser >> enabled;
 		}
-		catch (exception_io_data) { pitch = 0.0; pitch_type = 0; }
+		catch (exception_io_data) { pitch = 0.0; pitch_type = 0; enabled = false; }
 	}
 };
 
@@ -394,9 +400,8 @@ public:
 	// Every DSP type is identified by a GUID.
 	static GUID g_get_guid() {
 		// {44BCACA2-9EDD-493A-BB8F-9474F4B5A76B}
-		static const GUID guid = 
-		{ 0x44bcaca2, 0x9edd, 0x493a, { 0xbb, 0x8f, 0x94, 0x74, 0xf4, 0xb5, 0xa7, 0x6b } };
-		return guid;
+		
+		return guid_tempo;
 	}
 
 	// We also need a name, so the user can identify the DSP.
@@ -453,6 +458,9 @@ public:
 			sample_buffer.set_size(BUFFER_SIZE*m_ch);
 			samplebuf.set_size(BUFFER_SIZE*m_ch);
 
+			if (pitch_amount == 0)st_enabled = false;
+			if (!st_enabled) return true;
+			
 
 			if (pitch_shifter == 1)
 			{
@@ -479,7 +487,7 @@ public:
 					p_soundtouch->setChannels(m_ch);
 					p_soundtouch->setTempoChange(pitch_amount);
 					st_enabled = true;
-					if (pitch_amount == 0)st_enabled = false;
+					
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
 					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, usequickseek);
@@ -489,7 +497,7 @@ public:
 		}
 
 
-		if (!st_enabled) return true;
+		
 
 		if (rubber) {
 			while (sample_count > 0)
@@ -645,9 +653,8 @@ public:
 	// Every DSP type is identified by a GUID.
 	static GUID g_get_guid() {
 		// {8C12D81E-BB88-4056-B4C0-EAFA4E9F3B95}
-		static const GUID guid = 
-		{ 0x8c12d81e, 0xbb88, 0x4056, { 0xb4, 0xc0, 0xea, 0xfa, 0x4e, 0x9f, 0x3b, 0x95 } };
-		return guid;
+		
+		return guid_pbrate;
 	}
 
 	// We also need a name, so the user can identify the DSP.
@@ -724,6 +731,7 @@ public:
 	}
 
 	virtual void flush() {
+		if (!st_enabled)return;
 		if (p_soundtouch){
 			p_soundtouch->clear();
 		}
@@ -767,7 +775,25 @@ public:
 	}
 };
 
-class CMyDSPPopupPitch : public CDialogImpl<CMyDSPPopupPitch>
+class _DSPConfigNotify {
+public:
+	virtual void DSPConfigChange(dsp_chain_config const & cfg) {}
+};
+typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
+
+class dsp_config_callback_dispatch : public dsp_config_callback {
+public:
+	void on_core_settings_change(const dsp_chain_config & p_newdata) {
+		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
+			(*walk)->DSPConfigChange(p_newdata);
+		}
+	}
+};
+
+static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
+
+
+class CMyDSPPopupPitch : public CDialogImpl<CMyDSPPopupPitch>,private DSPConfigNotify
 {
 public:
 	CMyDSPPopupPitch( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
@@ -783,9 +809,32 @@ public:
 		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX(IDC_PITCHTYPE, CBN_SELCHANGE, OnChange)
-		MSG_WM_HSCROLL( OnChange )
+		MSG_WM_HSCROLL( OnScroll )
 	END_MSG_MAP()
 private:
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
+	void ApplySettings()
+	{
+		dsp_preset_impl preset2;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pitch, preset2)) {
+			float  pitch;
+			bool enabled;
+			int pitch_type;
+			dsp_pitch::parse_preset(pitch, pitch_type,enabled, preset2);
+			CWindow w = GetDlgItem(IDC_PITCHTYPE);
+			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
+			float pitch_val = pitch *= 100.00;
+			slider_drytime.SetPos((double)(pitch_val + 2400));
+			RefreshLabel(pitch_val / 100.00);
+		}
+	}
+
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 		slider_drytime = GetDlgItem(IDC_PITCH);
@@ -795,12 +844,10 @@ private:
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
 		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
 		int pitch_type;
-	
 		{
-
-
 			float  pitch;
-			dsp_pitch::parse_preset(pitch,pitch_type, m_initData);
+			bool enabled = true;
+			dsp_pitch::parse_preset(pitch, pitch_type,enabled, m_initData);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
 			pitch *= 100.00;
 			slider_drytime.SetPos( (double)(pitch+2400));
@@ -814,21 +861,41 @@ private:
 		EndDialog( id );
 	}
 
-	void OnChange(UINT, int id, CWindow)
+	void OnChange(UINT scrollID, int id, CWindow window)
 	{
 			float pitch;
 			pitch = slider_drytime.GetPos() - 2400;
 			pitch /= 100.00;
 
-
+			bool enabled = false;
 			int p_type; //filter type
 			p_type = SendDlgItemMessage(IDC_PITCHTYPE, CB_GETCURSEL);
 			{
 				dsp_preset_impl preset;
-				dsp_pitch::make_preset(pitch, p_type, preset);
+				enabled = true;
+				dsp_pitch::make_preset(pitch, p_type,enabled, preset);
 				m_callback.on_preset_changed(preset);
 			}
 			RefreshLabel(pitch);
+	}
+
+	void OnScroll(UINT scrollID, int id, CWindow window)
+	{
+		float pitch;
+		pitch = slider_drytime.GetPos() - 2400;
+		pitch /= 100.00;
+
+		bool enabled = false;
+		int p_type; //filter type
+		p_type = SendDlgItemMessage(IDC_PITCHTYPE, CB_GETCURSEL);
+		if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
+		{
+			dsp_preset_impl preset;
+			enabled = true;
+			dsp_pitch::make_preset(pitch, p_type, enabled, preset);
+			m_callback.on_preset_changed(preset);
+		}
+		RefreshLabel(pitch);
 	}
 	
 
@@ -845,13 +912,262 @@ private:
 	dsp_preset_edit_callback & m_callback;
 	CTrackBarCtrl slider_drytime,slider_wettime,slider_dampness,slider_roomwidth,slider_roomsize;
 };
-static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
+
+static void RunDSPConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
 {
-	CMyDSPPopupPitch popup( p_data, p_callback );
-	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
+	CMyDSPPopupPitch popup(p_data, p_callback);
+
+	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
 }
 
-class CMyDSPPopupRate : public CDialogImpl<CMyDSPPopupRate>
+/*
+static void g_preset_to_config(t_eq_config & p_config, const dsp_preset & p_preset)
+{
+	if (p_preset.get_data_size() != sizeof(p_config)) p_config = g_eq_config_default;
+	else p_config = *reinterpret_cast<const t_eq_config*>(p_preset.get_data());
+}
+
+
+static void g_config_to_preset(dsp_preset & p_preset, const t_eq_config & p_config)
+{
+	p_preset.set_owner(GUID_dsp_equalizer);
+	p_preset.set_data(&p_config, sizeof(p_config));
+}
+*/
+
+static const GUID guid_cfg_placement = { 0xb348277, 0x38ee, 0x479d, { 0xbd, 0x7b, 0xb9, 0x37, 0x41, 0x11, 0x86, 0x97 } }; static cfg_window_placement cfg_placement(guid_cfg_placement);
+
+
+
+class CMyDSPPopupPitchTempoRate : public CDialogImpl<CMyDSPPopupPitchTempoRate>, private DSPConfigNotify
+{
+public:
+	CMyDSPPopupPitchTempoRate() { }
+	enum { IDD = IDD_PITCHTEMPO };
+	enum
+	{
+		pitchmin = 0,
+		pitchmax = 4800,
+		tempomax = 150
+
+	};
+	BEGIN_MSG_MAP(CMyDSPPopupPitchTempoRate)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDC_PITCHTYPE2, CBN_SELCHANGE, OnChange)
+		COMMAND_HANDLER_EX(IDC_TEMPOTYPE2, CBN_SELCHANGE, OnChange)
+		COMMAND_HANDLER_EX(IDC_PITCHENABLED, BN_CLICKED, OnEnabledToggle)
+		MSG_WM_HSCROLL(OnScroll)
+		MSG_WM_DESTROY(OnDestroy)
+	END_MSG_MAP()
+private:
+	void SetPitchEnabled(bool state) { m_buttonPitchEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+	bool IsPitchEnabled() { return m_buttonPitchEnabled == NULL || m_buttonPitchEnabled.GetCheck() == BST_CHECKED; }
+
+	void DSPEnable(const dsp_preset & data) {
+		//altered from enable_dsp to append to DSP array
+		dsp_chain_config_impl cfg;
+		static_api_ptr_t<dsp_config_manager>()->get_core_settings(cfg);
+		bool found = false;
+		bool changed = false;
+		t_size n, m = cfg.get_count();
+		for (n = 0; n < m; n++) {
+			if (cfg.get_item(n).get_owner() == data.get_owner()) {
+				found = true;
+				if (cfg.get_item(n) != data) {
+					cfg.replace_item(data, n);
+					changed = true;
+				}
+				break;
+			}
+		}
+		//append to DSP queue
+		if (!found) { if (n>0)n++; cfg.insert_item(data, n); changed = true; }
+		if (changed) static_api_ptr_t<dsp_config_manager>()->set_core_settings(cfg);
+	}
+
+	void PitchDisable() {
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pitch);
+	}
+
+
+	void PitchEnable(float pitch, int pitch_type, bool enabled) {
+		dsp_preset_impl preset;
+		dsp_pitch::make_preset(pitch, pitch_type, enabled, preset);
+		DSPEnable(preset);
+	}
+
+	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+		if (IsPitchEnabled()) {
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_pitch::make_preset(pitch, p_type, pitch_enabled, preset);
+			//yes change api;
+			DSPEnable(preset);
+		}
+		else {
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pitch);
+		}
+	}
+
+	void OnScroll(UINT scrollID, int pos, CWindow window)
+	{
+			pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+			if (IsPitchEnabled())
+			{
+					GetConfig();
+					if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_pitch.m_hWnd)
+					{
+						PitchEnable(pitch, p_type, pitch_enabled);
+					}
+			}
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+		if (IsPitchEnabled())
+		{
+			GetConfig();
+			OnConfigChanged();
+		}
+	}
+
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if(!m_ownPitchUpdate && m_hWnd != NULL)  {
+			ApplySettings();
+		}
+	}
+
+	//set settings if from another control
+	void ApplySettings()
+	{
+		dsp_preset_impl preset;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pitch, preset)) {
+			SetPitchEnabled(true);
+			dsp_pitch::parse_preset(pitch, p_type,pitch_enabled, preset);
+			
+		}
+		else {
+			SetPitchEnabled(false);
+		}
+		SetConfig();
+	
+		
+	}
+
+	void OnConfigChanged() {
+		if (IsPitchEnabled()) {
+			GetConfig();
+			PitchEnable(pitch,p_type,pitch_enabled);
+		}
+		else {
+		 PitchDisable();
+		}
+	}
+
+
+	void GetConfig()
+	{
+		float pitch_sl = slider_pitch.GetPos() - 2400;
+		pitch = pitch_sl /= 100.00;
+		p_type = SendDlgItemMessage(IDC_PITCHTYPE2, CB_GETCURSEL);
+		RefreshLabel(pitch_sl);
+		pitch_enabled = IsPitchEnabled(); 
+		
+	}
+
+	void SetConfig()
+	{
+		CWindow w = GetDlgItem(IDC_PITCHTYPE2);
+		{
+			::SendMessage(w, CB_SETCURSEL, p_type, 0);
+			float pitch2 = pitch *= 100.00;
+			slider_pitch.SetPos((double)(pitch2 + 2400));
+			RefreshLabel(pitch2 / 100.00);
+		}
+		SetPitchEnabled(pitch_enabled);
+	}
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+		m_ownPitchUpdate = false;
+		modeless_dialog_manager::g_add(m_hWnd);
+		cfg_placement.on_window_creation(m_hWnd);
+		RECT rect;
+		GetWindowRect(&rect);
+		SetWindowPos(HWND_TOPMOST,&rect,0);
+		slider_pitch = GetDlgItem(IDC_PITCH2);
+		m_buttonPitchEnabled = GetDlgItem(IDC_PITCHENABLED);
+		slider_pitch.SetRange(0, pitchmax);
+		CWindow w = GetDlgItem(IDC_PITCHTYPE2);
+		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
+		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
+		pitch = 0.0;
+		p_type = 0;
+		pitch_enabled = false;
+		ApplySettings();
+		
+		return TRUE;
+	}
+
+	
+	void OnDestroy()
+	{
+		modeless_dialog_manager::g_remove(m_hWnd);
+		cfg_placement.on_window_destruction(m_hWnd);
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		DestroyWindow();
+	}
+
+
+
+	void RefreshLabel(float  pitch)
+	{
+		pfc::string_formatter msg;
+		msg << "Pitch: ";
+		msg << (pitch < 0 ? "" : "+");
+		msg << pfc::format_float(pitch, 0, 2) << " semitones";
+		::uSetDlgItemText(*this, IDC_PITCHINFO2, msg);
+		msg.reset();
+	}
+	float  pitch; 
+	int p_type;
+	int t_type;
+	float tempo;
+	bool pitch_enabled;
+	CTrackBarCtrl slider_pitch,slider_tempo;
+	CButton m_buttonPitchEnabled,m_buttonTempoEnabled;
+	bool m_ownPitchUpdate;
+	bool ingui;
+};
+
+
+
+static CWindow g_pitchdlg;
+void PitchMainMenuWindow()
+{
+	if (!core_api::assert_main_thread()) return;
+
+	if (!g_pitchdlg.IsWindow())
+	{
+		CMyDSPPopupPitchTempoRate * dlg = new CMyDSPPopupPitchTempoRate();
+		g_pitchdlg = dlg->Create(core_api::get_main_window());
+		
+	}
+	if (g_pitchdlg.IsWindow())
+	{
+		g_pitchdlg.ShowWindow(SW_SHOW);
+		::SetForegroundWindow(g_pitchdlg);
+	}
+}
+
+class CMyDSPPopupRate : public CDialogImpl<CMyDSPPopupRate>, private DSPConfigNotify
 {
 public:
 	CMyDSPPopupRate( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
@@ -880,6 +1196,7 @@ private:
 			slider_drytime.SetPos( (double)(pitch+50));
 			RefreshLabel( pitch);
 		}
+		
 		return TRUE;
 	}
 
@@ -919,7 +1236,7 @@ static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp
 	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
 }
 
-class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>
+class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>, private DSPConfigNotify
 {
 public:
 	CMyDSPPopupTempo( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
@@ -935,15 +1252,14 @@ public:
 		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX(IDC_TEMPOTYPE, CBN_SELCHANGE, OnChange)
-		MSG_WM_HSCROLL(OnChange)
+		
+		MSG_WM_HSCROLL(OnScroll)
 	END_MSG_MAP()
 private:
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 		slider_drytime = GetDlgItem(IDC_TEMPO);
 		slider_drytime.SetRange(0, pitchmax);
-
-
 
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
@@ -959,6 +1275,7 @@ private:
 		return TRUE;
 	}
 
+
 	void OnButton( UINT, int id, CWindow )
 	{
 		EndDialog( id );
@@ -970,6 +1287,21 @@ private:
 		pitch = slider_drytime.GetPos() - 75;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
+		{
+			dsp_preset_impl preset;
+			dsp_tempo::make_preset(pitch, p_type, preset);
+			m_callback.on_preset_changed(preset);
+		}
+		RefreshLabel(pitch);
+	}
+
+	void OnScroll(UINT scrollID, int id, CWindow window)
+	{
+		float pitch;
+		pitch = slider_drytime.GetPos() - 75;
+		int p_type; //filter type
+		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
+		if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
 		{
 			dsp_preset_impl preset;
 			dsp_tempo::make_preset(pitch, p_type, preset);
@@ -997,6 +1329,9 @@ static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, ds
 	CMyDSPPopupTempo popup( p_data, p_callback );
 	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
 }
+
+
+
 
 
 

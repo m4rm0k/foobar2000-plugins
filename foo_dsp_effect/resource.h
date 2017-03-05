@@ -60,8 +60,8 @@
 #define IDD_TEMPO1                      1045
 #define IDD_RATE                        1046
 #define IDC_RELEASETIME                 1047
-#define IDD_STDUI                       1047
 #define IDC_DYNAMICSRELEASETIME         1048
+#define IDD_PITCHTEMPO                  1048
 #define IDC_IIRQ                        1049
 #define IDC_FASTRATIO                   1050
 #define IDC_DYNAMICSFASTRATIO           1051
@@ -78,39 +78,42 @@
 #define IDC_DYNAMICSDISPLAY_PEAK        1062
 #define IDC_IIRTYPE                     1063
 #define IDC_DISPLAY_RELEASE             1064
-#define IDC_PITCHDUI                    1064
 #define IDC_DYNAMICSDISPLAY_RELEASE     1065
-#define IDC_TEMPODUI                    1065
 #define IDC_PITCH                       1066
-#define IDC_PITCHINFODUI                1066
 #define IDC_DISPLAY_FASTRATIO           1067
-#define IDC_RATEDUI                     1067
 #define IDC_DYNAMICSDISPLAY_FASTRATIO   1068
-#define IDC_PITCHENABLE                 1068
 #define IDC_PITCHINFO                   1069
-#define IDC_TEMPOENABLE                 1069
 #define IDC_DISPLAY_SLOWRATIO           1070
-#define IDC_TEMPOINFODUI                1070
 #define IDC_PITCHTYPE                   1070
 #define IDC_DYNAMICSDISPLAY_SLOWRATIO   1071
-#define IDC_RATEINFODUI2                1071
 #define IDC_TEMPOTYPE                   1071
 #define IDC_TEMPO                       1072
 #define IDC_PITCHENABLE2                1072
-#define IDC_RATEENABLE                  1072
+#define IDC_IIRTYPELABEL                1072
 #define IDC_TEMPOINFO                   1073
+#define IDC_PITCHENABLED                1073
 #define IDC_RATEINFO                    1074
+#define IDC_TEMPOINFO2                  1074
 #define IDC_RATE                        1075
+#define IDC_RATEINFO2                   1075
+#define IDC_RATE2                       1076
 #define IDC_COMBO2                      1077
+#define IDC_TEMPOENABLED                1077
+#define IDC_RATENABLED                  1078
+#define IDC_PITCH2                      1079
+#define IDC_PITCHINFO2                  1080
+#define IDC_PITCHTYPE2                  1081
+#define IDC_TEMPO2                      1082
+#define IDC_TEMPOTYPE2                  1083
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1072
+#define _APS_NEXT_CONTROL_VALUE         1084
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
