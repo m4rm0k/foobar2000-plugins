@@ -117,14 +117,14 @@ public:
 
 	void get_name(t_uint32 p_index, pfc::string_base & p_out) {
 		p_out.reset();
-		p_out += "Pitch Shift DSP config";
+		p_out += "Pitch/Tempo/Playback Rate Shift config";
 	}
 
 	bool get_description(t_uint32 p_index, pfc::string_base & p_out) {
 
 		pfc::string8 text;
 		p_out.reset();
-		if (p_index == 0)p_out = "Opens Pitch Shift DSP window.";
+		if (p_index == 0)p_out = "Opens a window for realtime pitch/tempo/playback rate control.";
 		return true;
 	}
 
@@ -133,7 +133,7 @@ public:
 		pfc::string_base & p_text,
 		t_uint32 & p_flags)
 	{
-		if (p_index == 0) p_text = "Pitch Shift";
+		if (p_index == 0) p_text = "Pitch/Tempo control";
 		return true;
 	}
 };
