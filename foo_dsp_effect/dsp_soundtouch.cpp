@@ -450,6 +450,9 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
+		if (pitch_amount == 0)st_enabled = false;
+		if (!st_enabled) return true;
+
 		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
 		{
 			m_rate = chunk->get_srate();
@@ -457,10 +460,6 @@ public:
 			m_ch_mask = chunk->get_channel_config();
 			sample_buffer.set_size(BUFFER_SIZE*m_ch);
 			samplebuf.set_size(BUFFER_SIZE*m_ch);
-
-			if (pitch_amount == 0)st_enabled = false;
-			if (!st_enabled) return true;
-			
 
 			if (pitch_shifter == 1)
 			{
@@ -646,8 +645,9 @@ public:
 	{
 		p_soundtouch=0;
 		buffered=0;
-		parse_preset( pitch_amount, in );
-		st_enabled = true;
+		st_enabled = false;
+		parse_preset( pitch_amount,st_enabled, in );
+		
 	}
 	~dsp_rate(){
 		if (p_soundtouch) delete p_soundtouch;
@@ -700,6 +700,9 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
+		if (pitch_amount == 0)st_enabled = false;
+		if (!st_enabled) return true;
+
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
 			m_rate = chunk->get_srate();
@@ -712,7 +715,7 @@ public:
 			p_soundtouch->setChannels(m_ch);
 			p_soundtouch->setRateChange(pitch_amount);
 			st_enabled = true;
-			if (pitch_amount== 0)st_enabled = false;
+			
 		}
 		samplebuf.grow_size(BUFFER_SIZE * m_ch);
 		if (!st_enabled) return true;
@@ -754,7 +757,7 @@ public:
 
 	static bool g_get_default_preset( dsp_preset & p_out )
 	{
-		make_preset( 0.0, p_out );
+		make_preset( 0.0,false, p_out );
 		return true;
 	}
 	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
@@ -762,20 +765,22 @@ public:
 		::RunDSPConfigPopupRate( p_data, p_parent, p_callback );
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( float pitch, dsp_preset & out )
+	static void make_preset( float pitch,bool enabled, dsp_preset & out )
 	{
 		dsp_preset_builder builder; 
 		builder << pitch; 
+		builder << enabled;
 		builder.finish( g_get_guid(), out );
 	}                        
-	static void parse_preset(float & pitch, const dsp_preset & in)
+	static void parse_preset(float & pitch,bool & enabled, const dsp_preset & in)
 	{
 		try
 		{
 			dsp_preset_parser parser(in);
 			parser >> pitch; 
+			parser >> enabled;
 		}
-		catch(exception_io_data) {pitch = 0.0;}
+		catch (exception_io_data) { pitch = 0.0; enabled = false; }
 	}
 };
 
@@ -934,7 +939,7 @@ class CMyDSPPopupPitchTempoRate : public CDialogImpl<CMyDSPPopupPitchTempoRate>,
 {
 public:
 	CMyDSPPopupPitchTempoRate() { pitch = 0.0; p_type = 0; pitch_enabled = false;
-	tempo = 0.0; t_type = 0; tempo_enabled = false;
+	tempo = 0.0; t_type = 0; tempo_enabled = false; rate = 0; rate_enabled = false;
 	}
 	enum { IDD = IDD_PITCHTEMPO };
 	enum
@@ -952,6 +957,7 @@ public:
 		COMMAND_HANDLER_EX(IDC_TEMPOTYPE2, CBN_SELCHANGE, OnChange)
 		COMMAND_HANDLER_EX(IDC_PITCHENABLED, BN_CLICKED, OnEnabledToggle)
 		COMMAND_HANDLER_EX(IDC_TEMPOENABLED, BN_CLICKED, OnEnabledToggle2)
+		COMMAND_HANDLER_EX(IDC_RATENABLED,BN_CLICKED,OnEnabledToggle3)
 		MSG_WM_HSCROLL(OnScroll)
 		MSG_WM_DESTROY(OnDestroy)
 	END_MSG_MAP()
@@ -960,6 +966,9 @@ private:
 	bool IsPitchEnabled() { return m_buttonPitchEnabled == NULL || m_buttonPitchEnabled.GetCheck() == BST_CHECKED; }
 	void SetTempoEnabled(bool state) { m_buttonTempoEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 	bool IsTempoEnabled() { return m_buttonTempoEnabled == NULL || m_buttonTempoEnabled.GetCheck() == BST_CHECKED; }
+	void SetRateEnabled(bool state) { m_buttonRateEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+	bool IsRateEnabled() { return m_buttonRateEnabled == NULL || m_buttonRateEnabled.GetCheck() == BST_CHECKED; }
+
 
 	void DSPEnable(const dsp_preset & data) {
 		//altered from enable_dsp to append to DSP array
@@ -1005,6 +1014,17 @@ private:
 		DSPEnable(preset);
 	}
 
+	void RateDisable() {
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pbrate);
+	}
+
+
+	void RateEnable(float pitch, bool enabled) {
+		dsp_preset_impl preset;
+		dsp_rate::make_preset(pitch, enabled, preset);
+		DSPEnable(preset);
+	}
+
 	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
 		pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
 		if (IsPitchEnabled()) {
@@ -1035,13 +1055,30 @@ private:
 
 	}
 
+	void OnEnabledToggle3(UINT uNotifyCode, int nID, CWindow wndCtl) {
+		pfc::vartoggle_t<bool> ownUpdate2(m_ownRateUpdate, true);
+		if (IsRateEnabled()) {
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_rate::make_preset(rate, rate_enabled, preset);
+			//yes change api;
+			DSPEnable(preset);
+		}
+		else {
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pbrate);
+		}
+
+	}
+
 	void OnScroll(UINT scrollID, int pos, CWindow window)
 	{
 			pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
 			pfc::vartoggle_t<bool> ownUpdate2(m_ownTempoUpdate, true);
+			pfc::vartoggle_t<bool> ownUpdate3(m_ownRateUpdate, true);
+			GetConfig();
 			if (IsPitchEnabled())
 			{
-					GetConfig();
+					
 					if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_pitch.m_hWnd)
 					{
 						PitchEnable(pitch, p_type, pitch_enabled);
@@ -1050,10 +1087,18 @@ private:
 
 			if (IsTempoEnabled())
 			{
-				GetConfig();
+			
 				if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_tempo.m_hWnd)
 				{
 					TempoEnable(tempo, t_type, tempo_enabled);
+				}
+			}
+
+			if (IsRateEnabled())
+			{
+				if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_rate.m_hWnd)
+				{
+					RateEnable(rate,rate_enabled);
 				}
 			}
 	}
@@ -1062,22 +1107,18 @@ private:
 	{
 		pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
 		pfc::vartoggle_t<bool> ownUpdate2(m_ownTempoUpdate, true);
-		if (IsPitchEnabled())
+		pfc::vartoggle_t<bool> ownUpdate3(m_ownRateUpdate, true);
+		GetConfig();
+		if (IsPitchEnabled() || IsRateEnabled() || IsTempoEnabled())
 		{
-			GetConfig();
-			OnConfigChanged();
-		}
-
-		if (IsTempoEnabled())
-		{
-			GetConfig();
+			
 			OnConfigChanged();
 		}
 	}
 
 	void DSPConfigChange(dsp_chain_config const & cfg)
 	{
-		if(!m_ownPitchUpdate && !m_ownTempoUpdate && m_hWnd != NULL)  {
+		if(!m_ownPitchUpdate && !m_ownTempoUpdate && !m_ownRateUpdate && m_hWnd != NULL)  {
 			ApplySettings();
 		}
 	}
@@ -1107,6 +1148,18 @@ private:
 			SetTempoEnabled(false);
 			SetConfig();
 		}
+
+
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pbrate, preset)) {
+			SetTempoEnabled(true);
+			dsp_rate::parse_preset(rate,rate_enabled, preset);
+			SetRateEnabled(rate_enabled);
+			SetConfig();
+		}
+		else {
+			SetRateEnabled(false);
+			SetConfig();
+		}
 		
 	
 		
@@ -1114,7 +1167,6 @@ private:
 
 	void OnConfigChanged() {
 		if (IsPitchEnabled()) {
-			GetConfig();
 			PitchEnable(pitch,p_type,pitch_enabled);
 		}
 		else {
@@ -1122,11 +1174,17 @@ private:
 		}
 
 		if (IsTempoEnabled()) {
-			GetConfig();
 			TempoEnable(tempo, t_type, tempo_enabled);
 		}
 		else {
 			TempoDisable();
+		}
+
+		if (IsRateEnabled()) {
+			RateEnable(rate, rate_enabled);
+		}
+		else {
+			RateDisable();
 		}
 	}
 
@@ -1143,7 +1201,10 @@ private:
 		t_type = SendDlgItemMessage(IDC_TEMPOTYPE2, CB_GETCURSEL);
 		tempo_enabled = IsTempoEnabled();
 
-		RefreshLabel(pitch,tempo);
+		rate = slider_rate.GetPos() - 50;
+		tempo_enabled = IsRateEnabled();
+
+		RefreshLabel(pitch,tempo,rate);
 	
 		
 	}
@@ -1161,7 +1222,9 @@ private:
 		::SendMessage(w, CB_SETCURSEL, t_type, 0);
 		slider_tempo.SetPos((double)(tempo + 75));
 
-		RefreshLabel(pitch2/100,tempo);
+		slider_rate.SetPos((double)(rate + 50));
+
+		RefreshLabel(pitch2/100,tempo,rate);
 		
 	}
 
@@ -1191,6 +1254,11 @@ private:
 		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
 		m_ownTempoUpdate = false;
 
+		m_buttonRateEnabled = GetDlgItem(IDC_RATENABLED);
+		slider_rate = GetDlgItem(IDC_RATE2);
+		slider_rate.SetRange(0, tempomax);
+		m_ownRateUpdate = false;
+
 		ApplySettings();
 		return TRUE;
 	}
@@ -1207,9 +1275,7 @@ private:
 		DestroyWindow();
 	}
 
-
-
-	void RefreshLabel(float  pitch,float tempo)
+	void RefreshLabel(float  pitch,float tempo,float rate)
 	{
 		pfc::string_formatter msg;
 		msg << "Pitch: ";
@@ -1218,21 +1284,26 @@ private:
 		::uSetDlgItemText(*this, IDC_PITCHINFO2, msg);
 		msg.reset();
 
-		msg.reset();
 		msg << "Tempo: ";
 		msg << (tempo < 0 ? "" : "+");
 		msg << pfc::format_int(tempo) << "%";
 		::uSetDlgItemText(*this, IDC_TEMPOINFO2, msg);
+
+		msg.reset();
+		msg << "Playback Rate: ";
+		msg << (rate < 0 ? "" : "+");
+		msg << pfc::format_int(rate) << "%";
+		::uSetDlgItemText(*this, IDC_RATEINFO2, msg);
 	}
 	float  pitch; 
 	int p_type;
 	int t_type;
 	float tempo;
-	bool pitch_enabled,tempo_enabled;
-	CTrackBarCtrl slider_pitch,slider_tempo;
-	CButton m_buttonPitchEnabled,m_buttonTempoEnabled;
-	bool m_ownPitchUpdate, m_ownTempoUpdate;
-	bool ingui;
+	float rate;
+	bool pitch_enabled,tempo_enabled,rate_enabled;
+	CTrackBarCtrl slider_pitch,slider_tempo,slider_rate;
+	CButton m_buttonPitchEnabled,m_buttonTempoEnabled,m_buttonRateEnabled;
+	bool m_ownPitchUpdate, m_ownTempoUpdate,m_ownRateUpdate;
 };
 
 
@@ -1273,6 +1344,26 @@ public:
 		MSG_WM_HSCROLL( OnHScroll )
 	END_MSG_MAP()
 private:
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
+	void ApplySettings()
+	{
+		dsp_preset_impl preset2;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pbrate, preset2)) {
+			float  rate;
+			bool enabled;
+			int pitch_type;
+			dsp_rate::parse_preset(rate,enabled, preset2);
+			slider_drytime.SetPos((double)(rate+50));
+			RefreshLabel(rate);
+		}
+	}
+
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 		slider_drytime = GetDlgItem(IDC_RATE);
@@ -1280,7 +1371,8 @@ private:
 
 		{
 			float  pitch;
-			dsp_rate::parse_preset(pitch, m_initData);
+			bool enabled;
+			dsp_rate::parse_preset(pitch,enabled, m_initData);
 			slider_drytime.SetPos( (double)(pitch+50));
 			RefreshLabel( pitch);
 		}
@@ -1293,14 +1385,18 @@ private:
 		EndDialog( id );
 	}
 
-	void OnHScroll( UINT nSBCode, UINT nPos, CScrollBar pScrollBar )
+	void OnHScroll( UINT nSBCode, UINT nPos, CWindow window )
 	{
 		float pitch;
 		pitch = slider_drytime.GetPos()-50;
 		{
-			dsp_preset_impl preset;
-			dsp_rate::make_preset(pitch, preset );
-			m_callback.on_preset_changed( preset );
+			if ((LOWORD(nSBCode) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
+			{
+				dsp_preset_impl preset;
+				dsp_rate::make_preset(pitch, true, preset);
+				m_callback.on_preset_changed(preset);
+			}
+
 		}
 		RefreshLabel( pitch);
 	}
