@@ -66,6 +66,7 @@
 #define IDD_DYNAMICS1                   1049
 #define IDC_FASTRATIO                   1050
 #define IDC_DYNAMICSSLOWRATIO1          1050
+#define IDD_ECHO1                       1050
 #define IDC_DYNAMICSFASTRATIO           1051
 #define IDC_IIRQINFO                    1052
 #define IDC_SLOWRATIO                   1053
@@ -117,15 +118,21 @@
 #define IDC_DYNAMICSENABLED             1091
 #define IDC_DYNAMICSDISPLAY_PEAK1       1092
 #define IDC_DYNAMICSDISPLAY_GAIN1       1093
+#define IDC_SLIDER_MS1                  1094
+#define IDC_SLIDER_LABEL_MS1            1095
+#define IDC_SLIDER_AMP1                 1096
+#define IDC_SLIDER_LABEL_AMP1           1097
+#define IDC_CHECK1                      1098
+#define IDC_ECHOENABLED                 1098
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        116
+#define _APS_NEXT_RESOURCE_VALUE        117
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1094
+#define _APS_NEXT_CONTROL_VALUE         1099
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

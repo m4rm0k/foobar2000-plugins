@@ -467,7 +467,33 @@ private:
 	}
 };
 
-class CMyDSPPopupDynamics : public CDialogImpl<CMyDSPPopupDynamics>
+static dsp_factory_t<dsp_dynamics> dsp_dynamics_factory;
+
+static const GUID guid_cfg_placement =
+{ 0x6ce1ca13, 0xe1ba, 0x41de,{ 0x8b, 0xe0, 0x11, 0xac, 0x9c, 0x61, 0x82, 0xbe } };
+
+static cfg_window_placement cfg_placement(guid_cfg_placement);
+
+
+class _DSPConfigNotify {
+public:
+	virtual void DSPConfigChange(dsp_chain_config const & cfg) {}
+};
+typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
+
+class dsp_config_callback_dispatch : public dsp_config_callback {
+public:
+	void on_core_settings_change(const dsp_chain_config & p_newdata) {
+		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
+			(*walk)->DSPConfigChange(p_newdata);
+		}
+	}
+};
+
+static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
+
+
+class CMyDSPPopupDynamics : public CDialogImpl<CMyDSPPopupDynamics>, private DSPConfigNotify
 {
 public:
 	CMyDSPPopupDynamics(const dsp_preset & initData, dsp_preset_edit_callback & callback) : m_initData(initData), m_callback(callback) { }
@@ -486,13 +512,20 @@ public:
 	END_MSG_MAP()
 
 private:
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
 	void ApplySettings()
 	{
 		dsp_preset_impl preset2;
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_dynamics, preset2)) {
 			bool enabled;
 			bool dynamics_enabled;
-			dsp_dynamics::parse_preset(peaklimit, releasetime, fastratio, slowratio, gain, dynamics_enabled, m_initData);
+			dsp_dynamics::parse_preset(peaklimit, releasetime, fastratio, slowratio, gain, dynamics_enabled, preset2);
 			slider_peaklimit.SetPos((double)(1000 * peaklimit));
 			slider_releasetime.SetPos((double)(1000 * releasetime));
 			slider_fastratio.SetPos((double)(1000 * fastratio));
@@ -591,30 +624,6 @@ static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_
 
 
 
-static dsp_factory_t<dsp_dynamics> dsp_dynamics_factory;
-
-static const GUID guid_cfg_placement =
-{ 0x6ce1ca13, 0xe1ba, 0x41de,{ 0x8b, 0xe0, 0x11, 0xac, 0x9c, 0x61, 0x82, 0xbe } };
-
-static cfg_window_placement cfg_placement(guid_cfg_placement);
-
-
-class _DSPConfigNotify {
-public:
-	virtual void DSPConfigChange(dsp_chain_config const & cfg) {}
-};
-typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
-
-class dsp_config_callback_dispatch : public dsp_config_callback {
-public:
-	void on_core_settings_change(const dsp_chain_config & p_newdata) {
-		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
-			(*walk)->DSPConfigChange(p_newdata);
-		}
-	}
-};
-
-static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
 
 
 

@@ -63,6 +63,19 @@ BEGIN
     CTEXT           "N%",IDC_SLIDER_LABEL_AMP,120,92,44,8
 END
 
+IDD_ECHO1 DIALOGEX 0, 0, 284, 131
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Echo DSP Configuration"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,228,114,50,14
+    CONTROL         "",IDC_SLIDER_MS1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,12,260,24
+    CTEXT           "N ms",IDC_SLIDER_LABEL_MS1,120,44,44,8
+    CONTROL         "",IDC_SLIDER_AMP1,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,60,260,24
+    CTEXT           "N%",IDC_SLIDER_LABEL_AMP1,120,92,44,8
+    CONTROL         "Enabled",IDC_ECHOENABLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,114,78,12
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -79,8 +92,27 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 124
     END
+
+    IDD_ECHO1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 277
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 124
+    END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ECHO1 AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
