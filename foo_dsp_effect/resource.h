@@ -63,7 +63,9 @@
 #define IDC_DYNAMICSRELEASETIME         1048
 #define IDD_PITCHTEMPO                  1048
 #define IDC_IIRQ                        1049
+#define IDD_DYNAMICS1                   1049
 #define IDC_FASTRATIO                   1050
+#define IDC_DYNAMICSSLOWRATIO1          1050
 #define IDC_DYNAMICSFASTRATIO           1051
 #define IDC_IIRQINFO                    1052
 #define IDC_SLOWRATIO                   1053
@@ -105,15 +107,25 @@
 #define IDC_PITCHTYPE2                  1081
 #define IDC_TEMPO2                      1082
 #define IDC_TEMPOTYPE2                  1083
+#define IDC_DYNAMICSPEAKLIMIT1          1084
+#define IDC_DYNAMICSRELEASETIME1        1085
+#define IDC_DYNAMICSDISPLAY_RELEASE1    1086
+#define IDC_DYNAMICSDISPLAY_FASTRATIO1  1087
+#define IDC_DYNAMICSFASTRATIO1          1088
+#define IDC_DYNAMICSDISPLAY_SLOWRATIO1  1089
+#define IDC_DYNAMICSGAIN1               1090
+#define IDC_DYNAMICSENABLED             1091
+#define IDC_DYNAMICSDISPLAY_PEAK1       1092
+#define IDC_DYNAMICSDISPLAY_GAIN1       1093
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1084
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

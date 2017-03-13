@@ -4,6 +4,7 @@
 #include "resource.h"
 #include <math.h>
 #include <commctrl.h>
+#include "dsp_guids.h"
 /*
 * Normally, elements with number suffices are progressively
 * slower.
@@ -246,13 +247,16 @@ class dsp_dynamics : public dsp_impl_base
 	float fastratio;
 	float slowratio;
 	float gain;
+	bool dynamics_enabled;
 	compstruct state;
 public:
 	dsp_dynamics( dsp_preset const & in ) : peaklimit(0.90), releasetime(0.30),fastratio(0.25),slowratio(0.50),gain(1.0),m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 ) 
 	{
-		parse_preset( peaklimit, releasetime,fastratio,slowratio,gain, in );
+		dynamics_enabled = true;
+		parse_preset( peaklimit, releasetime,fastratio,slowratio,gain,dynamics_enabled, in );
 		state.rightdelay = NULL;
 		state.leftdelay = NULL;
+		
 	    recalculate_parameters();
 	}
 
@@ -264,10 +268,8 @@ public:
 
 	static GUID g_get_guid()
 	{
-		// {E6509452-690A-4aa6-B32A-EE29BC2D5FE5}
-		static const GUID guid = 
-		{ 0xe6509452, 0x690a, 0x4aa6, { 0xb3, 0x2a, 0xee, 0x29, 0xbc, 0x2d, 0x5f, 0xe5 } };
-		return guid;
+		
+		return guid_dynamics;
 	}
 
 	static void g_get_name( pfc::string_base & p_out ) { p_out = "Dynamics Compressor"; }
@@ -275,6 +277,8 @@ public:
 	bool on_chunk( audio_chunk * chunk, abort_callback & )
 	{
 		double dright, dleft;
+
+		if (!dynamics_enabled) return true;
 
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
@@ -350,7 +354,7 @@ public:
 
 	static bool g_get_default_preset( dsp_preset & p_out )
 	{
-		make_preset(0.90,0.30,0.25,0.50,1.0,p_out);
+		make_preset(0.90,0.30,0.25,0.50,1.0,true,p_out);
 		return true;
 	}
 
@@ -360,7 +364,7 @@ public:
 	}
 
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( float peaklimit,float  releasetime,float fastratio, float slowratio, float gain,dsp_preset & out )
+	static void make_preset( float peaklimit,float  releasetime,float fastratio, float slowratio, float gain,bool enabled,dsp_preset & out )
 	{
 		dsp_preset_builder builder; 
 		builder << peaklimit; 
@@ -368,9 +372,10 @@ public:
 		builder << fastratio; 
 		builder << slowratio;
 		builder << gain; 
+		builder << enabled;
 		builder.finish( g_get_guid(), out );
 	}                        
-	static void parse_preset(float & peaklimit,float & releasetime,float & fastratio, float & slowratio, float & gain, const dsp_preset & in)
+	static void parse_preset(float & peaklimit,float & releasetime,float & fastratio, float & slowratio, float & gain,bool & enabled, const dsp_preset & in)
 	{
 		try
 		{
@@ -380,8 +385,9 @@ public:
 			parser >> fastratio; 
 			parser >> slowratio;
 			parser >> gain; 
+			parser >> enabled;
 		}
-		catch(exception_io_data) {peaklimit =0.90; releasetime=0.30;fastratio=0.25;slowratio=0.50;gain=1.0;}
+		catch (exception_io_data) { peaklimit = 0.90; releasetime = 0.30; fastratio = 0.25; slowratio = 0.50; gain = 1.0; enabled = true; }
 	}
 	
 private:
@@ -461,11 +467,10 @@ private:
 	}
 };
 
-
 class CMyDSPPopupDynamics : public CDialogImpl<CMyDSPPopupDynamics>
 {
 public:
-	CMyDSPPopupDynamics( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
+	CMyDSPPopupDynamics(const dsp_preset & initData, dsp_preset_edit_callback & callback) : m_initData(initData), m_callback(callback) { }
 	enum { IDD = IDD_DYNAMICS };
 
 	enum
@@ -473,14 +478,29 @@ public:
 		RANGE = 1000
 	};
 
-	BEGIN_MSG_MAP( CMyDSPPopup )
-		MSG_WM_INITDIALOG( OnInitDialog )
-		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
-		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
-		MSG_WM_HSCROLL( OnHScroll )
+	BEGIN_MSG_MAP(CMyDSPPopupDynamics)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		MSG_WM_HSCROLL(OnHScroll)
 	END_MSG_MAP()
 
 private:
+	void ApplySettings()
+	{
+		dsp_preset_impl preset2;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_dynamics, preset2)) {
+			bool enabled;
+			bool dynamics_enabled;
+			dsp_dynamics::parse_preset(peaklimit, releasetime, fastratio, slowratio, gain, dynamics_enabled, m_initData);
+			slider_peaklimit.SetPos((double)(1000 * peaklimit));
+			slider_releasetime.SetPos((double)(1000 * releasetime));
+			slider_fastratio.SetPos((double)(1000 * fastratio));
+			slider_slowratio.SetPos((double)(1000 * slowratio));
+			slider_gain.SetPos((double)((gain - 1.0)*200.0));
+			RefreshLabel(peaklimit, releasetime, fastratio, slowratio, gain);
+		}
+	}
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
@@ -488,92 +508,361 @@ private:
 		slider_peaklimit.SetRange(0, RANGE);
 		slider_releasetime = GetDlgItem(IDC_DYNAMICSRELEASETIME);
 		slider_releasetime.SetRange(0, RANGE);
-		slider_fastratio =GetDlgItem(IDC_DYNAMICSFASTRATIO);
+		slider_fastratio = GetDlgItem(IDC_DYNAMICSFASTRATIO);
 		slider_fastratio.SetRange(0, RANGE);
 		slider_slowratio = GetDlgItem(IDC_DYNAMICSSLOWRATIO);
 		slider_slowratio.SetRange(0, RANGE);
 		slider_gain = GetDlgItem(IDC_DYNAMICSGAIN);
 		slider_gain.SetRange(0, 600);
 		{
-			float peaklimit;
-			float releasetime;
-			float fastratio;
-			float slowratio;
-			float gain;
-			dsp_dynamics::parse_preset( peaklimit,releasetime,fastratio,slowratio,gain, m_initData );
-			slider_peaklimit.SetPos( (double)(1000*peaklimit));
-			slider_releasetime.SetPos( (double)(1000*releasetime));
-			slider_fastratio.SetPos((double)(1000*fastratio));
-			slider_slowratio.SetPos((double)(1000*slowratio));
-			slider_gain.SetPos((double)((gain-1.0)*200.0));
-			RefreshLabel( peaklimit,releasetime,fastratio,slowratio,gain );
+			
+			bool dynamics_enabled;
+			dsp_dynamics::parse_preset(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled, m_initData);
+			slider_peaklimit.SetPos((double)(1000 * peaklimit));
+			slider_releasetime.SetPos((double)(1000 * releasetime));
+			slider_fastratio.SetPos((double)(1000 * fastratio));
+			slider_slowratio.SetPos((double)(1000 * slowratio));
+			slider_gain.SetPos((double)((gain - 1.0)*200.0));
+			RefreshLabel(peaklimit, releasetime, fastratio, slowratio, gain);
 		}
 		return TRUE;
 	}
 
-	void OnButton( UINT, int id, CWindow )
+	void OnButton(UINT, int id, CWindow)
 	{
-		EndDialog( id );
+		EndDialog(id);
 	}
 
-	void OnHScroll( UINT nSBCode, UINT nPos, CScrollBar pScrollBar )
+	void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar pScrollBar)
 	{
-		float peaklimit;
-		float releasetime;
-		float fastratio;
-		float slowratio;
-		float gain;
-
-		peaklimit = slider_peaklimit.GetPos()/1000.0;
-		releasetime = slider_releasetime.GetPos()/1000.0;
-		fastratio = slider_fastratio.GetPos()/1000.0;
-	    slowratio = slider_slowratio.GetPos()/1000.0;
-		gain = slider_gain.GetPos()/200.0;
-		gain = 1.0+(gain);
+		peaklimit = slider_peaklimit.GetPos() / 1000.0;
+		releasetime = slider_releasetime.GetPos() / 1000.0;
+		fastratio = slider_fastratio.GetPos() / 1000.0;
+		slowratio = slider_slowratio.GetPos() / 1000.0;
+		gain = slider_gain.GetPos() / 200.0;
+		gain = 1.0 + (gain);
 		{
 			dsp_preset_impl preset;
-			dsp_dynamics::make_preset( peaklimit, releasetime,fastratio,slowratio,gain, preset );
-			m_callback.on_preset_changed( preset );
+			dsp_dynamics::make_preset(peaklimit, releasetime, fastratio, slowratio, gain,true, preset);
+			m_callback.on_preset_changed(preset);
 		}
-		RefreshLabel( peaklimit, releasetime,fastratio,slowratio,gain );
+		RefreshLabel(peaklimit, releasetime, fastratio, slowratio, gain);
 	}
 
-	void RefreshLabel( float peaklimit,float  releasetime,float fastratio, float slowratio, float gain )
+	void RefreshLabel(float peaklimit, float  releasetime, float fastratio, float slowratio, float gain)
 	{
 		float fval;
 		pfc::string8 temp;
-        pfc::string_formatter msg;
-		msg << pfc::format_int( peaklimit*100) << "%";
-		::uSetDlgItemText( *this, IDC_DYNAMICSDISPLAY_PEAK, msg );
+		pfc::string_formatter msg;
+		msg << pfc::format_int(peaklimit * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_PEAK, msg);
 		msg.reset();
-		msg << pfc::format_int( releasetime*1000 ) << " ms";
-		::uSetDlgItemText( *this, IDC_DYNAMICSDISPLAY_RELEASE, msg );
+		msg << pfc::format_int(releasetime * 1000) << " ms";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_RELEASE, msg);
 		msg.reset();
-		msg << pfc::format_int( fastratio*100) << "%";
-		::uSetDlgItemText( *this, IDC_DYNAMICSDISPLAY_FASTRATIO, msg );
+		msg << pfc::format_int(fastratio * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_FASTRATIO, msg);
 		msg.reset();
-		msg << pfc::format_int( slowratio*100) << "%";
-		::uSetDlgItemText( *this, IDC_DYNAMICSDISPLAY_SLOWRATIO, msg );
+		msg << pfc::format_int(slowratio * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_SLOWRATIO, msg);
 		msg.reset();
-		float gain_val = (gain-1.0)*200;
-		float final = ((gain_val / 600) * 100); 
-		msg << pfc::format_int(final ) << "%";
-		::uSetDlgItemText( *this, IDC_DYNAMICSDISPLAY_GAIN, msg );
+		float gain_val = (gain - 1.0) * 200;
+		float final = ((gain_val / 600) * 100);
+		msg << pfc::format_int(final) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_GAIN, msg);
+	}
+	float peaklimit;
+	float releasetime;
+	float fastratio;
+	float slowratio;
+	float gain;
+	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
+	dsp_preset_edit_callback & m_callback;
+	CTrackBarCtrl slider_peaklimit, slider_releasetime, slider_fastratio, slider_slowratio, slider_gain;
+};
 
+static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
+{
+	CMyDSPPopupDynamics popup(p_data, p_callback);
+	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
+}
+
+
+
+
+static dsp_factory_t<dsp_dynamics> dsp_dynamics_factory;
+
+static const GUID guid_cfg_placement =
+{ 0x6ce1ca13, 0xe1ba, 0x41de,{ 0x8b, 0xe0, 0x11, 0xac, 0x9c, 0x61, 0x82, 0xbe } };
+
+static cfg_window_placement cfg_placement(guid_cfg_placement);
+
+
+class _DSPConfigNotify {
+public:
+	virtual void DSPConfigChange(dsp_chain_config const & cfg) {}
+};
+typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
+
+class dsp_config_callback_dispatch : public dsp_config_callback {
+public:
+	void on_core_settings_change(const dsp_chain_config & p_newdata) {
+		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
+			(*walk)->DSPConfigChange(p_newdata);
+		}
+	}
+};
+
+static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
+
+
+
+class CMyDSPDynamicsWindow : public CDialogImpl<CMyDSPDynamicsWindow>, private DSPConfigNotify
+{
+public:
+	CMyDSPDynamicsWindow() {
+		dynamics_enabled = false;
+		peaklimit = 0.;releasetime=0.;
+		fastratio=0.;slowratio=0.;
+		gain=0.;
+		
+	}
+	enum { IDD = IDD_DYNAMICS1 };
+	enum
+	{
+		RANGE = 1000
+	};
+	BEGIN_MSG_MAP(CMyDSPDynamicsWindow)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDC_PITCHENABLED, BN_CLICKED, OnEnabledToggle)
+		MSG_WM_HSCROLL(OnScroll)
+		MSG_WM_DESTROY(OnDestroy)
+	END_MSG_MAP()
+private:
+	void SetDynamicsEnabled(bool state) { m_buttonDynamicsEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+	bool IsDynamicsEnabled() { return m_buttonDynamicsEnabled == NULL || m_buttonDynamicsEnabled.GetCheck() == BST_CHECKED; }
+
+
+	void DSPEnable(const dsp_preset & data) {
+		//altered from enable_dsp to append to DSP array
+		dsp_chain_config_impl cfg;
+		static_api_ptr_t<dsp_config_manager>()->get_core_settings(cfg);
+		bool found = false;
+		bool changed = false;
+		t_size n, m = cfg.get_count();
+		for (n = 0; n < m; n++) {
+			if (cfg.get_item(n).get_owner() == data.get_owner()) {
+				found = true;
+				if (cfg.get_item(n) != data) {
+					cfg.replace_item(data, n);
+					changed = true;
+				}
+				break;
+			}
+		}
+		//append to DSP queue
+		if (!found) { if (n > 0)n++; cfg.insert_item(data, n); changed = true; }
+		if (changed) static_api_ptr_t<dsp_config_manager>()->set_core_settings(cfg);
+	}
+
+	void DynamicsDisable() {
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dynamics);
+	}
+
+
+	void DynamicsEnable(float peaklimit,float releasetime,float fastratio,float slowratio,float gain,bool dynamics_enabled) {
+		dsp_preset_impl preset; 
+		dsp_dynamics::make_preset(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled, preset);
+		DSPEnable(preset);
+	}
+
+	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+		pfc::vartoggle_t<bool> ownUpdate(m_ownDynamicsUpdate, true);
+		if (IsDynamicsEnabled()) {
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_dynamics::make_preset(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled, preset);
+			//yes change api;
+			DSPEnable(preset);
+		}
+		else {
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dynamics);
+		}
+
+	}
+
+	void OnScroll(UINT scrollID, int pos, CWindow window)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownDynamicsUpdate, true);
+		GetConfig();
+		if (IsDynamicsEnabled())
+		{
+			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			{
+				DynamicsEnable(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled);
+			}
+		}
+
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownDynamicsUpdate, true);
+		GetConfig();
+		if (IsDynamicsEnabled())
+		{
+
+			OnConfigChanged();
+		}
+	}
+
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (!m_ownDynamicsUpdate && m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
+	//set settings if from another control
+	void ApplySettings()
+	{
+		dsp_preset_impl preset;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_dynamics, preset)) {
+			SetDynamicsEnabled(true);
+			dsp_dynamics::parse_preset(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled, preset);
+			SetDynamicsEnabled(dynamics_enabled);
+			SetConfig();
+		}
+		else {
+			SetDynamicsEnabled(false);
+			SetConfig();
+		}
+	}
+
+	void OnConfigChanged() {
+		if (IsDynamicsEnabled()) {
+			DynamicsEnable(peaklimit, releasetime, fastratio, slowratio, gain);
+		}
+		else {
+			DynamicsDisable();
+		}
+
+	}
+
+
+	void GetConfig()
+	{
+		peaklimit = slider_peaklimit.GetPos() / 1000.0;
+		releasetime = slider_releasetime.GetPos() / 1000.0;
+		fastratio = slider_fastratio.GetPos() / 1000.0;
+		slowratio = slider_slowratio.GetPos() / 1000.0;
+		gain = slider_gain.GetPos() / 200.0;
+		gain = 1.0 + (gain);
+		dynamics_enabled = IsDynamicsEnabled();
+		RefreshLabel(peaklimit, releasetime, fastratio, slowratio, gain);
 
 
 	}
 
-	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
-	dsp_preset_edit_callback & m_callback;
-	CTrackBarCtrl slider_peaklimit, slider_releasetime, slider_fastratio, slider_slowratio,slider_gain;
+	void SetConfig()
+	{
+		slider_peaklimit.SetPos((double)(1000 * peaklimit));
+		slider_releasetime.SetPos((double)(1000 * releasetime));
+		slider_fastratio.SetPos((double)(1000 * fastratio));
+		slider_slowratio.SetPos((double)(1000 * slowratio));
+		slider_gain.SetPos((double)((gain - 1.0)*200.0));
+
+		RefreshLabel(peaklimit, releasetime, fastratio, slowratio, gain);
+
+	}
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+
+		modeless_dialog_manager::g_add(m_hWnd);
+		cfg_placement.on_window_creation(m_hWnd);
+		slider_peaklimit = GetDlgItem(IDC_DYNAMICSPEAKLIMIT1);
+		slider_peaklimit.SetRange(0, RANGE);
+		slider_releasetime = GetDlgItem(IDC_DYNAMICSRELEASETIME1);
+		slider_releasetime.SetRange(0, RANGE);
+		slider_fastratio = GetDlgItem(IDC_DYNAMICSFASTRATIO1);
+		slider_fastratio.SetRange(0, RANGE);
+		slider_slowratio = GetDlgItem(IDC_DYNAMICSSLOWRATIO1);
+		slider_slowratio.SetRange(0, RANGE);
+		slider_gain = GetDlgItem(IDC_DYNAMICSGAIN1);
+		slider_gain.SetRange(0, 600);
+
+		m_buttonDynamicsEnabled = GetDlgItem(IDC_DYNAMICSENABLED);
+		m_ownDynamicsUpdate = false;
+
+		ApplySettings();
+		return TRUE;
+	}
+
+
+	void OnDestroy()
+	{
+		modeless_dialog_manager::g_remove(m_hWnd);
+		cfg_placement.on_window_destruction(m_hWnd);
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		DestroyWindow();
+	}
+
+	void RefreshLabel(float peaklimit, float  releasetime, float fastratio, float slowratio, float gain)
+	{
+		float fval;
+		pfc::string8 temp;
+		pfc::string_formatter msg;
+		msg << pfc::format_int(peaklimit * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_PEAK1, msg);
+		msg.reset();
+		msg << pfc::format_int(releasetime * 1000) << " ms";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_RELEASE1, msg);
+		msg.reset();
+		msg << pfc::format_int(fastratio * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_FASTRATIO1, msg);
+		msg.reset();
+		msg << pfc::format_int(slowratio * 100) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_SLOWRATIO1, msg);
+		msg.reset();
+		float gain_val = (gain - 1.0) * 200;
+		float final = ((gain_val / 600) * 100);
+		msg << pfc::format_int(final) << "%";
+		::uSetDlgItemText(*this, IDC_DYNAMICSDISPLAY_GAIN1, msg);
+	}
+
+	bool dynamics_enabled;
+	float peaklimit;
+	float releasetime;
+	float fastratio;
+	float slowratio;
+	float gain;
+	CTrackBarCtrl slider_peaklimit, slider_releasetime, slider_fastratio, slider_slowratio, slider_gain;
+	CButton m_buttonDynamicsEnabled;
+	bool m_ownDynamicsUpdate;
 };
 
-static void RunConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
+static CWindow g_pitchdlg;
+void DynamicsMainMenuWindow()
 {
-	CMyDSPPopupDynamics popup( p_data, p_callback );
-	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
+	if (!core_api::assert_main_thread()) return;
+
+	if (!g_pitchdlg.IsWindow())
+	{
+		CMyDSPDynamicsWindow  * dlg = new  CMyDSPDynamicsWindow();
+		g_pitchdlg = dlg->Create(core_api::get_main_window());
+
+	}
+	if (g_pitchdlg.IsWindow())
+	{
+		g_pitchdlg.ShowWindow(SW_SHOW);
+		::SetForegroundWindow(g_pitchdlg);
+	}
 }
 
 
-static dsp_factory_t<dsp_dynamics> dsp_dynamics_factory;
