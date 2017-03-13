@@ -541,6 +541,7 @@ private:
 		slowratio = slider_slowratio.GetPos() / 1000.0;
 		gain = slider_gain.GetPos() / 200.0;
 		gain = 1.0 + (gain);
+		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
 		{
 			dsp_preset_impl preset;
 			dsp_dynamics::make_preset(peaklimit, releasetime, fastratio, slowratio, gain,true, preset);
@@ -621,10 +622,8 @@ class CMyDSPDynamicsWindow : public CDialogImpl<CMyDSPDynamicsWindow>, private D
 {
 public:
 	CMyDSPDynamicsWindow() {
-		dynamics_enabled = false;
-		peaklimit = 0.;releasetime=0.;
-		fastratio=0.;slowratio=0.;
-		gain=0.;
+		peaklimit = 0.90; releasetime = 0.30; fastratio = 0.25; 
+		slowratio = 0.50; gain = 1.0; dynamics_enabled = true;
 		
 	}
 	enum { IDD = IDD_DYNAMICS1 };
@@ -636,7 +635,7 @@ public:
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDC_PITCHENABLED, BN_CLICKED, OnEnabledToggle)
+		COMMAND_HANDLER_EX(IDC_DYNAMICSENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
 		MSG_WM_DESTROY(OnDestroy)
 	END_MSG_MAP()
@@ -743,7 +742,7 @@ private:
 
 	void OnConfigChanged() {
 		if (IsDynamicsEnabled()) {
-			DynamicsEnable(peaklimit, releasetime, fastratio, slowratio, gain);
+			DynamicsEnable(peaklimit, releasetime, fastratio, slowratio,dynamics_enabled, gain);
 		}
 		else {
 			DynamicsDisable();
