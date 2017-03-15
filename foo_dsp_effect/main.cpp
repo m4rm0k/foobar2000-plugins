@@ -44,7 +44,10 @@ public:
 			::PitchMainMenuWindow();
 			break;
 		case 5:
-			::PitchMainMenuWindow();
+			::ReverbMainMenuWindow();
+			break;
+		case 6:
+			::ReverbMainMenuWindow();
 			break;
 		}
 	}
@@ -53,7 +56,7 @@ public:
 
 	t_uint32 get_command_count()
 	{
-		return 6;
+		return 7;
 	}
 
 	GUID get_parent() { return g_mainmenu_group_id; }
@@ -92,6 +95,10 @@ public:
 			p_out.reset();
 			p_out += "Reverb";
 			break;
+		case 6:
+			p_out.reset();
+			p_out += "WahWah";
+			break;
 		}
 		
 	}
@@ -120,6 +127,9 @@ public:
 		case 5:
 			p_out = "Opens a window for reverberation adjustment.";
 			break;
+		case 6:
+			p_out = "Opens a window for wah effect control.";
+			break;
 		}
 		return true;
 	}
@@ -145,6 +155,12 @@ public:
 			break;
 		case 4:
 			p_text = "Pitch/Tempo/Playback Rate";
+			break;
+		case 5:
+			p_text = "Reverb";
+			break;
+		case 6:
+			p_text = "WahWah";
 			break;
 		}
 		return true;

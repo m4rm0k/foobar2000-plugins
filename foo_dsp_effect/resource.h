@@ -74,6 +74,7 @@
 #define IDC_SLOWRATIO                   1053
 #define IDD_REVERB1                     1053
 #define IDC_DYNAMICSSLOWRATIO           1054
+#define IDD_WAHWAH1                     1054
 #define IDC_IIRGAIN                     1055
 #define IDC_GAIN                        1056
 #define IDC_DYNAMICSGAIN                1057
@@ -156,15 +157,27 @@
 #define IDC_ROOMWIDTHINFO1              1126
 #define IDC_FREEVERBENABLE              1127
 #define IDC_DAMPING1                    1128
+#define IDC_WAHDEPTH1                   1129
+#define IDC_WAHDEPTHINFO1               1130
+#define IDC_WAHRESONANCE1               1131
+#define IDC_WAHRESONANCEINFO1           1132
+#define IDC_WAHFREQOFFSET1              1133
+#define IDC_WAHFREQOFFSETINFO1          1134
+#define IDC_WAHLFOFREQ1                 1135
+#define IDC_WAHLFOFREQINFO1             1136
+#define IDC_WAHLFOSTARTPHASE1           1137
+#define IDC_WAHLFOPHASEINFO1            1138
+#define IDC_CHECK1                      1140
+#define IDC_WAHENABLED                  1140
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        121
+#define _APS_NEXT_RESOURCE_VALUE        122
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1129
+#define _APS_NEXT_CONTROL_VALUE         1141
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
