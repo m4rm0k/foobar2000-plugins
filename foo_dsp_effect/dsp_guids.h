@@ -16,5 +16,7 @@ static const GUID guid_pbrate ={ 0x8c12d81e, 0xbb88, 0x4056,{ 0xb4, 0xc0, 0xea, 
 void DynamicsMainMenuWindow();
 void EchoMainMenuWindow();
 void IIRMainMenuWindow();
+void PhaserMainMenuWindow();
 void PitchMainMenuWindow();
+void ReverbMainMenuWindow();
 #endif

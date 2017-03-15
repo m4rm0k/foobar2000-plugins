@@ -38,6 +38,12 @@ public:
 			::IIRMainMenuWindow();
 			break;
 		case 3:
+			::PhaserMainMenuWindow();
+			break;
+		case 4:
+			::PitchMainMenuWindow();
+			break;
+		case 5:
 			::PitchMainMenuWindow();
 			break;
 		}
@@ -47,7 +53,7 @@ public:
 
 	t_uint32 get_command_count()
 	{
-		return 4;
+		return 6;
 	}
 
 	GUID get_parent() { return g_mainmenu_group_id; }
@@ -76,7 +82,15 @@ public:
 			break;
 		case 3:
 			p_out.reset();
+			p_out += "Phaser";
+			break;
+		case 4:
+			p_out.reset();
 			p_out += "Pitch/Tempo/Playback Rate Shift";
+			break;
+		case 5:
+			p_out.reset();
+			p_out += "Reverb";
 			break;
 		}
 		
@@ -92,13 +106,19 @@ public:
 			p_out = "Opens a window for realtime dynamics compression control.";
 			break;
 		case 1:
-			p_out = "Opens a window for realtime echo adjustment.";
+			p_out = "Opens a window for echo adjustment.";
 			break;
 		case 2:
 			p_out = "Opens a window for realtime IIR filtering control.";
 			break;
 		case 3:
-			p_out = "Opens a window for realtime pitch/tempo/playback rate control.";
+			p_out = "Opens a window for cycling phase modulation control.";
+			break;
+		case 4:
+			p_out = "Opens a window for pitch/tempo/playback rate control.";
+			break;
+		case 5:
+			p_out = "Opens a window for reverberation adjustment.";
 			break;
 		}
 		return true;
@@ -121,6 +141,9 @@ public:
 			p_text = "IIR Filter";
 			break;
 		case 3:
+			p_text = "Phaser";
+			break;
+		case 4:
 			p_text = "Pitch/Tempo/Playback Rate";
 			break;
 		}

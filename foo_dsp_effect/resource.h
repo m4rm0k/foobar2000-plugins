@@ -70,7 +70,9 @@
 #define IDC_DYNAMICSFASTRATIO           1051
 #define IDD_IIR1                        1051
 #define IDC_IIRQINFO                    1052
+#define IDD_PHASER1                     1052
 #define IDC_SLOWRATIO                   1053
+#define IDD_REVERB1                     1053
 #define IDC_DYNAMICSSLOWRATIO           1054
 #define IDC_IIRGAIN                     1055
 #define IDC_GAIN                        1056
@@ -130,15 +132,39 @@
 #define IDC_IIRTYPE1                    1102
 #define IDC_IIRENABLED                  1103
 #define IDC_IIRGAININFO1                1104
+#define IDC_PHASERENABLED               1105
+#define IDC_PHASERSTAGES1               1106
+#define IDC_PHASERSTAGESINFO1           1107
+#define IDC_PHASERSDRYWET1              1108
+#define IDC_PHASERDRYWETINFO1           1109
+#define IDC_PHASERSLFOFREQ1             1110
+#define IDC_PHASERSLFOFREQINFO1         1111
+#define IDC_PHASERSLFOSTARTPHASE1       1112
+#define IDC_PHASERSLFOSTARTPHASEINFO1   1113
+#define IDC_PHASERSDEPTH1               1114
+#define IDC_PHASERSDEPTHINFO1           1115
+#define IDC_PHASERSFEEDBACK1            1116
+#define IDC_PHASERSFEEDBACKINFO1        1117
+#define IDC_DRYTIME1                    1118
+#define IDC_DRYTIMEINFO1                1119
+#define IDC_WETTIME1                    1120
+#define IDC_WETTIMEINFO1                1121
+#define IDC_DAMPINGINFO1                1122
+#define IDC_ROOMSIZE1                   1123
+#define IDC_ROOMSIZEINFO1               1124
+#define IDC_ROOMWIDTH1                  1125
+#define IDC_ROOMWIDTHINFO1              1126
+#define IDC_FREEVERBENABLE              1127
+#define IDC_DAMPING1                    1128
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        119
+#define _APS_NEXT_RESOURCE_VALUE        121
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1105
+#define _APS_NEXT_CONTROL_VALUE         1129
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

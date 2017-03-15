@@ -1233,9 +1233,9 @@ private:
 		
 		modeless_dialog_manager::g_add(m_hWnd);
 		cfg_placement.on_window_creation(m_hWnd);
-		RECT rect;
-		GetWindowRect(&rect);
-		SetWindowPos(HWND_TOPMOST,&rect,0);
+	//	RECT rect;
+	//	GetWindowRect(&rect);
+	//	SetWindowPos(HWND_TOPMOST,&rect,0);
 
 
 		slider_pitch = GetDlgItem(IDC_PITCH2);
