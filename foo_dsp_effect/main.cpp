@@ -35,6 +35,9 @@ public:
 			::EchoMainMenuWindow();
 			break;
 		case 2:
+			::IIRMainMenuWindow();
+			break;
+		case 3:
 			::PitchMainMenuWindow();
 			break;
 		}
@@ -44,7 +47,7 @@ public:
 
 	t_uint32 get_command_count()
 	{
-		return 3;
+		return 4;
 	}
 
 	GUID get_parent() { return g_mainmenu_group_id; }
@@ -69,6 +72,10 @@ public:
 			break;
 		case 2:
 			p_out.reset();
+			p_out += "IIR Filter";
+			break;
+		case 3:
+			p_out.reset();
 			p_out += "Pitch/Tempo/Playback Rate Shift";
 			break;
 		}
@@ -88,6 +95,9 @@ public:
 			p_out = "Opens a window for realtime echo adjustment.";
 			break;
 		case 2:
+			p_out = "Opens a window for realtime IIR filtering control.";
+			break;
+		case 3:
 			p_out = "Opens a window for realtime pitch/tempo/playback rate control.";
 			break;
 		}
@@ -108,6 +118,9 @@ public:
 			p_text = "Echo";
 			break;
 		case 2:
+			p_text = "IIR Filter";
+			break;
+		case 3:
 			p_text = "Pitch/Tempo/Playback Rate";
 			break;
 		}
