@@ -82,14 +82,14 @@ public:
 		
 	}
 	~dsp_pitch(){
-		if (p_soundtouch)
+		if (p_soundtouch && pitch_shifter ==0)
 		{
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
 		
 
-		if (rubber)
+		if (rubber&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 			delete rubber;
@@ -116,7 +116,7 @@ public:
 	}
 
 	virtual void on_endoftrack(abort_callback & p_abort) {
-		if (rubber)
+		if (rubber&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 		}
@@ -124,7 +124,7 @@ public:
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
         //same as flush, only at end of playback
-		if (p_soundtouch && st_enabled)
+		if (p_soundtouch && st_enabled && pitch_shifter == 0)
 		{
 				insert_chunks_st();
 				if (buffered)
@@ -137,7 +137,7 @@ public:
 				insert_chunks_st();	
 		}
 
-		if (rubber&& st_enabled)
+		if (rubber&& st_enabled&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 		}
@@ -197,7 +197,7 @@ public:
 
 	
 
-		if (rubber) {
+		if (rubber&& pitch_shifter == 1) {
 			while (sample_count > 0)
 			{
 				int toCauseProcessing = rubber->getSamplesRequired();
@@ -224,7 +224,7 @@ public:
 			}
 		}
 
-		if (p_soundtouch)
+		if (p_soundtouch&& pitch_shifter == 0)
 		{
 			while (sample_count > 0)
 			{
@@ -248,10 +248,10 @@ public:
 
 	virtual void flush() {
 		if (!st_enabled)return;
-		if (p_soundtouch){
+		if (p_soundtouch && pitch_shifter == 0){
 			p_soundtouch->clear();
 		}
-		if (rubber)
+		if (rubber && pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 		}
@@ -263,11 +263,11 @@ public:
 
 	virtual double get_latency() {
 		if (!st_enabled) return 0;
-		if (p_soundtouch)
+		if (p_soundtouch && pitch_shifter == 0)
 		{
 			return (double)(p_soundtouch->numSamples() + buffered) / (double)m_rate;
 		}
-		if (rubber)
+		if (rubber && pitch_shifter == 1)
 		{
 			return (double)(rubber->getLatency()) / (double)m_rate;
 		}
@@ -378,14 +378,14 @@ public:
 		parse_preset(pitch_amount, pitch_shifter,st_enabled, in);
 	}
 	~dsp_tempo(){
-		if (p_soundtouch)
+		if (p_soundtouch&& pitch_shifter == 0)
 		{
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
 
 
-		if (rubber)
+		if (rubber&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 			delete rubber;
@@ -421,7 +421,7 @@ public:
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
 		//same as flush, only at end of playback
-		if (p_soundtouch && st_enabled)
+		if (p_soundtouch && st_enabled&& pitch_shifter == 0)
 		{
 			insert_chunks_st();
 			if (buffered)
@@ -434,7 +434,7 @@ public:
 			insert_chunks_st();
 		}
 
-		if (rubber&& st_enabled)
+		if (rubber&& st_enabled&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 		}
@@ -444,6 +444,8 @@ public:
 	// Each chunk contains a number of samples with the same
 	// stream characteristics, i.e. same sample rate, channel count
 	// and channel configuration.
+
+
 
 
 	virtual bool on_chunk(audio_chunk * chunk, abort_callback & p_abort) {
@@ -463,6 +465,11 @@ public:
 
 			if (pitch_shifter == 1)
 			{
+				if (p_soundtouch)
+				{
+					delete p_soundtouch;
+					p_soundtouch = 0;
+				}
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
@@ -478,6 +485,14 @@ public:
 
 			if (pitch_shifter == 0)
 			{
+				if (rubber)
+				{
+					insert_chunks_rubber();
+					delete rubber;
+					if (plugbuf)delete plugbuf;
+					if (m_scratch)delete m_scratch;
+					rubber = NULL;
+				}
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
@@ -498,7 +513,7 @@ public:
 
 		
 
-		if (rubber) {
+		if (rubber&& pitch_shifter == 1) {
 			while (sample_count > 0)
 			{
 				int toCauseProcessing = rubber->getSamplesRequired();
@@ -525,7 +540,7 @@ public:
 			}
 		}
 
-		if (p_soundtouch)
+		if (p_soundtouch&& pitch_shifter == 0)
 		{
 			while (sample_count > 0)
 			{
@@ -549,10 +564,10 @@ public:
 
 	virtual void flush() {
 		if (!st_enabled) return;
-		if (p_soundtouch) {
+		if (p_soundtouch&& pitch_shifter == 0) {
 			p_soundtouch->clear();
 		}
-		if (rubber)
+		if (rubber&& pitch_shifter == 1)
 		{
 			insert_chunks_rubber();
 		}
@@ -564,11 +579,11 @@ public:
 
 	virtual double get_latency() {
 		if (!st_enabled) return 0;
-		if (p_soundtouch)
+		if (p_soundtouch&& pitch_shifter == 0)
 		{
 			return (m_rate && st_enabled) ? (double)(p_soundtouch->numSamples() + buffered) / (double)m_rate : 0;
 		}
-		if (rubber)
+		if (rubber&& pitch_shifter == 1)
 		{
 			return (m_rate && st_enabled) ? (double)(rubber->getLatency()) / (double)m_rate : 0;
 		}
