@@ -178,7 +178,7 @@ public:
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDC_PHASERENABLED, BN_CLICKED, OnEnabledToggle)
+		COMMAND_HANDLER_EX(IDC_WAHENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
 		MSG_WM_DESTROY(OnDestroy)
 	END_MSG_MAP()
@@ -321,15 +321,15 @@ private:
 
 		modeless_dialog_manager::g_add(m_hWnd);
 		cfg_placement.on_window_creation(m_hWnd);
-		slider_freq = GetDlgItem(IDC_WAHLFOFREQ);
+		slider_freq = GetDlgItem(IDC_WAHLFOFREQ1);
 		slider_freq.SetRange(FreqMin, FreqMax);
-		slider_startphase = GetDlgItem(IDC_WAHLFOSTARTPHASE);
+		slider_startphase = GetDlgItem(IDC_WAHLFOSTARTPHASE1);
 		slider_startphase.SetRange(0, StartPhaseMax);
-		slider_freqofs = GetDlgItem(IDC_WAHFREQOFFSET);
+		slider_freqofs = GetDlgItem(IDC_WAHFREQOFFSET1);
 		slider_freqofs.SetRange(0, 100);
-		slider_depth = GetDlgItem(IDC_WAHDEPTH);
+		slider_depth = GetDlgItem(IDC_WAHDEPTH1);
 		slider_depth.SetRange(0, 100);
-		slider_res = GetDlgItem(IDC_WAHRESONANCE);
+		slider_res = GetDlgItem(IDC_WAHRESONANCE1);
 		slider_res.SetRange(0, 100);
 
 		m_buttonWahEnabled = GetDlgItem(IDC_WAHENABLED);
