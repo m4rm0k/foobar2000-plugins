@@ -47,7 +47,7 @@ public:
 			::ReverbMainMenuWindow();
 			break;
 		case 6:
-			::ReverbMainMenuWindow();
+			::WahMainMenuWindow();
 			break;
 		}
 	}

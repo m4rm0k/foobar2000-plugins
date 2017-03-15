@@ -267,7 +267,7 @@ private:
 	void ApplySettings()
 	{
 		dsp_preset_impl preset;
-		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_phaser, preset)) {
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_freeverb, preset)) {
 			SetReverbEnabled(true);
 			dsp_reverb::parse_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
 			SetReverbEnabled(reverb_enabled);
