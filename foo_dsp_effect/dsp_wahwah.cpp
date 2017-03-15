@@ -150,8 +150,7 @@ class CMyDSPWahWindow : public CDialogImpl<CMyDSPWahWindow>, private DSPConfigNo
 {
 public:
 	CMyDSPWahWindow() {
-		drytime = 0.43; wettime = 0.57; dampness = 0.45;
-		roomwidth = 0.56; roomsize = 0.56; wah_enabled = true;
+		freq = 1.5; depth = 0.70; startphase = 0.0; freqofs = 0.3; res = 2.5; wah_enabled = true;
 
 	}
 	enum { IDD = IDD_WAHWAH1 };
@@ -244,7 +243,7 @@ private:
 		{
 			if (LOWORD(scrollID) == SB_THUMBPOSITION)
 			{
-				WahEnable((freq, depth, startphase, freqofs, res, wah_enabled);
+				WahEnable(freq, depth, startphase, freqofs, res, wah_enabled);
 			}
 		}
 
@@ -437,6 +436,29 @@ public:
 	END_MSG_MAP()
 
 private:
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
+	void ApplySettings()
+	{
+		dsp_preset_impl preset2;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_wahwah, preset2)) {
+			bool enabled;
+			dsp_wahwah::parse_preset(freq, depth, startphase, freqofs, res, enabled, m_initData);
+
+			slider_freq.SetPos((double)(10 * freq));
+			slider_startphase.SetPos((double)(100 * startphase));
+			slider_freqofs.SetPos((double)(100 * freqofs));
+			slider_depth.SetPos((double)(100 * depth));
+			slider_res.SetPos((double)(10 * res));
+
+			RefreshLabel(freq, depth, startphase, freqofs, res);
+		}
+	}
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
@@ -480,7 +502,7 @@ private:
 		startphase = slider_startphase.GetPos()/100.0;
 		freqofs = slider_freqofs.GetPos()/100.0;
 		res = slider_res.GetPos()/10.0;
-		if (LOWORD(scrollID) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
 		{
 			dsp_preset_impl preset;
 			dsp_wahwah::make_preset(freq,depth,startphase,freqofs,res,true,preset);
