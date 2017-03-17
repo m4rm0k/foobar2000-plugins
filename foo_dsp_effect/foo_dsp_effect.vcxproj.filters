@@ -8,7 +8,6 @@
     <ClCompile Include="dsp_phaser.cpp" />
     <ClCompile Include="dsp_wahwah.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="postprocess_deemph.cpp" />
     <ClCompile Include="freeverb.cpp">
       <Filter>DSP</Filter>
     </ClCompile>
@@ -131,6 +130,7 @@
     <ClInclude Include="SoundTouch\TDStretch.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
+    <ClInclude Include="dsp_guids.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_dsp_effect.rc" />
