@@ -1217,7 +1217,7 @@ private:
 		tempo_enabled = IsTempoEnabled();
 
 		rate = slider_rate.GetPos() - 50;
-		tempo_enabled = IsRateEnabled();
+		rate_enabled = IsRateEnabled();
 
 		RefreshLabel(pitch,tempo,rate);
 	
