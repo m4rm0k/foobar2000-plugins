@@ -13,6 +13,7 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 #define BUFFER_SIZE 2048
+#define BUFFER_SIZE_RB 4096
 
 class dsp_pitch : public dsp_impl_base
 {
@@ -159,12 +160,12 @@ public:
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
-			sample_buffer.set_size(BUFFER_SIZE*m_ch);
-			samplebuf.set_size(BUFFER_SIZE*m_ch);
+			
 
 
 			if (pitch_shifter == 1)
 			{
+				
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0, pow(2.0, pitch_amount / 12.0));
 				if (!rubber) return 0;
@@ -172,13 +173,28 @@ public:
 				if (m_scratch)delete m_scratch;
 				plugbuf = new float*[m_ch];
 				m_scratch = new float*[m_ch];
-				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
-				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
+				if (m_rate > 48000)
+				{
+					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
+					samplebuf.set_size(BUFFER_SIZE_RB*m_ch);
+					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RB];
+					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RB];
+				}
+				else
+				{
+					sample_buffer.set_size(BUFFER_SIZE*m_ch);
+					samplebuf.set_size(BUFFER_SIZE*m_ch);
+					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
+					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
+				}
+				
 				st_enabled = true;
 			}
 
 			if (pitch_shifter == 0)
 			{
+				sample_buffer.set_size(BUFFER_SIZE*m_ch);
+				samplebuf.set_size(BUFFER_SIZE*m_ch);
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
@@ -460,8 +476,7 @@ public:
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
-			sample_buffer.set_size(BUFFER_SIZE*m_ch);
-			samplebuf.set_size(BUFFER_SIZE*m_ch);
+		
 
 			if (pitch_shifter == 1)
 			{
@@ -476,15 +491,28 @@ public:
 				if (!rubber) return 0;
 				if (plugbuf)delete plugbuf;
 				if (m_scratch)delete m_scratch;
-				plugbuf = new float*[m_ch];
-				m_scratch = new float*[m_ch];
-				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
-				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
+				if (m_rate > 48000)
+				{
+					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
+					samplebuf.set_size(BUFFER_SIZE_RB*m_ch);
+					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RB];
+					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RB];
+				}
+				else
+				{
+					sample_buffer.set_size(BUFFER_SIZE*m_ch);
+					samplebuf.set_size(BUFFER_SIZE*m_ch);
+					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
+					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
+				}
+
 				st_enabled = true;
 			}
 
 			if (pitch_shifter == 0)
 			{
+				sample_buffer.set_size(BUFFER_SIZE*m_ch);
+				samplebuf.set_size(BUFFER_SIZE*m_ch);
 				if (rubber)
 				{
 					insert_chunks_rubber();
@@ -825,7 +853,7 @@ public:
 	enum
 	{
 		pitchmin = 0,
-		pitchmax = 4800
+		pitchmax = 2400
 		
 	};
 	BEGIN_MSG_MAP( CMyDSPPopup )
@@ -854,7 +882,7 @@ private:
 			CWindow w = GetDlgItem(IDC_PITCHTYPE);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
 			float pitch_val = pitch *= 100.00;
-			slider_drytime.SetPos((double)(pitch_val + 2400));
+			slider_drytime.SetPos((double)(pitch_val + 1200));
 			RefreshLabel(pitch_val / 100.00);
 		}
 	}
@@ -874,7 +902,7 @@ private:
 			dsp_pitch::parse_preset(pitch, pitch_type,enabled, m_initData);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
 			pitch *= 100.00;
-			slider_drytime.SetPos( (double)(pitch+2400));
+			slider_drytime.SetPos( (double)(pitch+1200));
 			RefreshLabel( pitch/100.00);
 		}
 		return TRUE;
@@ -888,7 +916,7 @@ private:
 	void OnChange(UINT scrollID, int id, CWindow window)
 	{
 			float pitch;
-			pitch = slider_drytime.GetPos() - 2400;
+			pitch = slider_drytime.GetPos() - 1200;
 			pitch /= 100.00;
 
 			bool enabled = false;
@@ -906,7 +934,7 @@ private:
 	void OnScroll(UINT scrollID, int id, CWindow window)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 2400;
+		pitch = slider_drytime.GetPos() - 1200;
 		pitch /= 100.00;
 
 		bool enabled = false;
@@ -960,7 +988,7 @@ public:
 	enum
 	{
 		pitchmin = 0,
-		pitchmax = 4800,
+		pitchmax = 2400,
 		tempomax = 150
 
 	};
@@ -1206,7 +1234,7 @@ private:
 
 	void GetConfig()
 	{
-		float pitch_sl = slider_pitch.GetPos() - 2400;
+		float pitch_sl = slider_pitch.GetPos() - 1200;
 		pitch = pitch_sl / 100.00;
 		p_type = SendDlgItemMessage(IDC_PITCHTYPE2, CB_GETCURSEL);
 		pitch_enabled = IsPitchEnabled();
@@ -1230,7 +1258,7 @@ private:
 		
 		::SendMessage(w, CB_SETCURSEL, p_type, 0);
 		float pitch2 = pitch * 100.00;
-		slider_pitch.SetPos((double)(pitch2 + 2400));
+		slider_pitch.SetPos((double)(pitch2 + 1200));
 		
 		
 		w = GetDlgItem(IDC_TEMPOTYPE2);
