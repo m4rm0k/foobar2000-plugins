@@ -83,21 +83,26 @@ public:
 		
 	}
 	~dsp_pitch(){
-		if (p_soundtouch && pitch_shifter ==0)
+		if (p_soundtouch)
 		{
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
 		
 
-		if (rubber&& pitch_shifter == 1)
+		if (rubber)
 		{
 			insert_chunks_rubber();
 			delete rubber;
-			if (plugbuf)delete plugbuf;
-			if (m_scratch)delete m_scratch;
-			plugbuf = 0;
-			m_scratch = 0;
+			for (int c = 0; c < m_ch; ++c)
+			{
+				delete plugbuf[c]; plugbuf[c] = NULL;
+				delete m_scratch[c]; m_scratch[c] = NULL;
+			}
+			delete plugbuf;
+			delete m_scratch;
+			m_scratch = NULL;
+			plugbuf = NULL;
 			rubber = 0;
 		}
 		
@@ -177,10 +182,15 @@ public:
 				{
 					insert_chunks_rubber();
 					delete rubber;
-					if (plugbuf)delete plugbuf;
-					if (m_scratch)delete m_scratch;
-					plugbuf = 0;
-					m_scratch = 0;
+					for (int c = 0; c < m_ch; ++c)
+					{
+						delete plugbuf[c]; plugbuf[c] = NULL;
+						delete m_scratch[c]; m_scratch[c] = NULL;
+					}
+					delete plugbuf;
+					delete m_scratch;
+					m_scratch = NULL;
+					plugbuf = NULL;
 					rubber = 0;
 				}
 				
@@ -222,10 +232,11 @@ public:
 				{
 					insert_chunks_rubber();
 					delete rubber;
-					if (plugbuf)delete plugbuf;
-					if (m_scratch)delete m_scratch;
-					plugbuf = 0;
-					m_scratch = 0;
+					for (int c = 0; c < m_ch; ++c)
+					{
+						delete plugbuf[c]; plugbuf[c] = NULL;
+						delete m_scratch[c]; m_scratch[c] = NULL;
+					}
 					rubber = 0;
 				}
 
@@ -430,21 +441,26 @@ public:
 		parse_preset(pitch_amount, pitch_shifter,st_enabled, in);
 	}
 	~dsp_tempo(){
-		if (p_soundtouch&& pitch_shifter == 0)
+		if (p_soundtouch)
 		{
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
 
 
-		if (rubber&& pitch_shifter == 1)
+		if (rubber)
 		{
 			insert_chunks_rubber();
 			delete rubber;
-			if (plugbuf)delete plugbuf;
-			if (m_scratch)delete m_scratch;
-			plugbuf = 0;
-			m_scratch = 0;
+			for (int c = 0; c < m_ch; ++c)
+			{
+				delete plugbuf[c]; plugbuf[c] = NULL;
+				delete m_scratch[c]; m_scratch[c] = NULL;
+			}
+			delete plugbuf;
+			delete m_scratch;
+			m_scratch = NULL;
+			plugbuf = NULL;
 			rubber = 0;
 		}
 	}
@@ -527,28 +543,23 @@ public:
 				if (rubber)
 				{
 					insert_chunks_rubber();
-					delete rubber;
-					if (plugbuf)delete plugbuf;
-					if (m_scratch)delete m_scratch;
-					plugbuf = 0;
-					m_scratch = 0;
-					rubber = 0;
+					for (int c = 0; c < m_ch; ++c)
+					{
+						delete plugbuf[c]; plugbuf[c] = NULL;
+						delete m_scratch[c]; m_scratch[c] = NULL;
+					}
+					delete plugbuf;
+					delete m_scratch;
+					m_scratch = NULL;
+					plugbuf = NULL;
+					rubber = NULL;
+					
 				}
 
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				if (!rubber) return 0;
-				if (plugbuf)
-				{
-					delete plugbuf;
-					plugbuf = NULL;
-				}
-				if (m_scratch)
-				{
-					delete m_scratch;
-					m_scratch = NULL;
-				}
 				if (m_rate > 48000)
 				{
 					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
@@ -560,6 +571,8 @@ public:
 				{
 					sample_buffer.set_size(BUFFER_SIZE*m_ch);
 					samplebuf.set_size(BUFFER_SIZE*m_ch);
+					m_scratch = new float *[m_ch];
+					plugbuf = new float *[m_ch];
 					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
 					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
 				}
@@ -584,10 +597,14 @@ public:
 				{
 					insert_chunks_rubber();
 					delete rubber;
-					if (plugbuf)delete plugbuf;
-					if (m_scratch)delete m_scratch;
-					plugbuf = 0;
-					m_scratch = 0;
+					if (plugbuf && m_scratch)
+					{
+						for (int c = 0; c < m_ch; ++c)
+						{
+							delete plugbuf[c]; plugbuf[c] = NULL;
+							delete m_scratch[c]; m_scratch[c] = NULL;
+						}
+					}
 					rubber = 0;
 				}
 
