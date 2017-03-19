@@ -170,29 +170,6 @@ public:
 
 			if (pitch_shifter == 1)
 			{
-				if (p_soundtouch)
-				{
-					insert_chunks_st();
-					delete p_soundtouch;
-					p_soundtouch = 0;
-				}
-
-
-				if (rubber)
-				{
-					insert_chunks_rubber();
-					delete rubber;
-					for (int c = 0; c < m_ch; ++c)
-					{
-						delete plugbuf[c]; plugbuf[c] = NULL;
-						delete m_scratch[c]; m_scratch[c] = NULL;
-					}
-					delete plugbuf;
-					delete m_scratch;
-					m_scratch = NULL;
-					plugbuf = NULL;
-					rubber = 0;
-				}
 				
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0, pow(2.0, pitch_amount / 12.0));
@@ -219,26 +196,6 @@ public:
 
 			if (pitch_shifter == 0)
 			{
-
-				if (p_soundtouch)
-				{
-					insert_chunks_st();
-					delete p_soundtouch;
-					p_soundtouch = 0;
-				}
-
-
-				if (rubber)
-				{
-					insert_chunks_rubber();
-					delete rubber;
-					for (int c = 0; c < m_ch; ++c)
-					{
-						delete plugbuf[c]; plugbuf[c] = NULL;
-						delete m_scratch[c]; m_scratch[c] = NULL;
-					}
-					rubber = 0;
-				}
 
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
@@ -443,6 +400,7 @@ public:
 	~dsp_tempo(){
 		if (p_soundtouch)
 		{
+			insert_chunks_st();
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
@@ -532,30 +490,6 @@ public:
 
 			if (pitch_shifter == 1)
 			{
-				if (p_soundtouch)
-				{
-					insert_chunks_st();
-					delete p_soundtouch;
-					p_soundtouch = 0;
-				}
-
-
-				if (rubber)
-				{
-					insert_chunks_rubber();
-					for (int c = 0; c < m_ch; ++c)
-					{
-						delete plugbuf[c]; plugbuf[c] = NULL;
-						delete m_scratch[c]; m_scratch[c] = NULL;
-					}
-					delete plugbuf;
-					delete m_scratch;
-					m_scratch = NULL;
-					plugbuf = NULL;
-					rubber = NULL;
-					
-				}
-
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
@@ -584,31 +518,6 @@ public:
 			{
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
-				
-				if (p_soundtouch)
-				{
-					insert_chunks_st();
-					delete p_soundtouch;
-					p_soundtouch = 0;
-				}
-
-
-				if (rubber)
-				{
-					insert_chunks_rubber();
-					delete rubber;
-					if (plugbuf && m_scratch)
-					{
-						for (int c = 0; c < m_ch; ++c)
-						{
-							delete plugbuf[c]; plugbuf[c] = NULL;
-							delete m_scratch[c]; m_scratch[c] = NULL;
-						}
-					}
-					rubber = 0;
-				}
-
-
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
