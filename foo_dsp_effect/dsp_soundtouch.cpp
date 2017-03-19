@@ -208,7 +208,6 @@ public:
 					p_soundtouch->setPitchSemiTones(pitch_amount);
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
-					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, usequickseek);
 					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 				}
 			}
@@ -529,7 +528,6 @@ public:
 					
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
-					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, usequickseek);
 					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 				}
 			}
