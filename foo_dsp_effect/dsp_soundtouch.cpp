@@ -130,7 +130,7 @@ public:
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
         //same as flush, only at end of playback
-		if (p_soundtouch && st_enabled && pitch_shifter == 0)
+		if (p_soundtouch && st_enabled)
 		{
 				insert_chunks_st();
 				if (buffered)
@@ -143,7 +143,7 @@ public:
 				insert_chunks_st();	
 		}
 
-		if (rubber&& st_enabled&& pitch_shifter == 1)
+		if (rubber&& st_enabled)
 		{
 			insert_chunks_rubber();
 		}
@@ -446,7 +446,7 @@ public:
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
 		//same as flush, only at end of playback
-		if (p_soundtouch && st_enabled&& pitch_shifter == 0)
+		if (p_soundtouch && st_enabled)
 		{
 			insert_chunks_st();
 			if (buffered)
@@ -459,7 +459,7 @@ public:
 			insert_chunks_st();
 		}
 
-		if (rubber&& st_enabled&& pitch_shifter == 1)
+		if (rubber&& st_enabled)
 		{
 			insert_chunks_rubber();
 		}
@@ -492,6 +492,8 @@ public:
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
+				m_scratch = new float *[m_ch];
+				plugbuf = new float *[m_ch];
 				if (!rubber) return 0;
 				if (m_rate > 48000)
 				{
@@ -504,8 +506,6 @@ public:
 				{
 					sample_buffer.set_size(BUFFER_SIZE*m_ch);
 					samplebuf.set_size(BUFFER_SIZE*m_ch);
-					m_scratch = new float *[m_ch];
-					plugbuf = new float *[m_ch];
 					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
 					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
 				}
