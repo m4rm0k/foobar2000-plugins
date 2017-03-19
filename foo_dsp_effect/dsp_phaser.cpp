@@ -254,7 +254,7 @@ private:
 		GetConfig();
 		if (IsPhaserEnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				PhaserEnable(freq, startphase, fb, depth, stages, drywet, phaser_enabled);
 			}
@@ -533,7 +533,7 @@ private:
 		depth = slider_depth.GetPos();
 		stages = slider_stages.GetPos();
 		drywet = slider_drywet.GetPos();
-		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_phaser::make_preset( freq,startphase,fb,depth,stages,drywet,true, preset );

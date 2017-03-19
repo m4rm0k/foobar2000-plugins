@@ -241,7 +241,7 @@ private:
 		GetConfig();
 		if (IsWahEnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				WahEnable(freq, depth, startphase, freqofs, res, wah_enabled);
 			}
@@ -502,7 +502,7 @@ private:
 		startphase = slider_startphase.GetPos()/100.0;
 		freqofs = slider_freqofs.GetPos()/100.0;
 		res = slider_res.GetPos()/10.0;
-		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_wahwah::make_preset(freq,depth,startphase,freqofs,res,true,preset);

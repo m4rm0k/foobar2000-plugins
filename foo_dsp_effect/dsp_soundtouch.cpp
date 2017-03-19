@@ -940,7 +940,7 @@ private:
 		bool enabled = false;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_PITCHTYPE, CB_GETCURSEL);
-		if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
+		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
 		{
 			dsp_preset_impl preset;
 			enabled = true;
@@ -1122,7 +1122,7 @@ private:
 			if (IsPitchEnabled())
 			{
 					
-					if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_pitch.m_hWnd)
+					if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_pitch.m_hWnd)
 					{
 						PitchEnable(pitch, p_type, pitch_enabled);
 					}
@@ -1131,7 +1131,7 @@ private:
 			if (IsTempoEnabled())
 			{
 			
-				if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_tempo.m_hWnd)
+				if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_tempo.m_hWnd)
 				{
 					TempoEnable(tempo, t_type, tempo_enabled);
 				}
@@ -1139,7 +1139,7 @@ private:
 
 			if (IsRateEnabled())
 			{
-				if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_rate.m_hWnd)
+				if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_rate.m_hWnd)
 				{
 					RateEnable(rate,rate_enabled);
 				}
@@ -1433,7 +1433,7 @@ private:
 		float pitch;
 		pitch = slider_drytime.GetPos()-50;
 		{
-			if ((LOWORD(nSBCode) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
+			if ((LOWORD(nSBCode) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
 			{
 				dsp_preset_impl preset;
 				dsp_rate::make_preset(pitch, true, preset);
@@ -1552,7 +1552,7 @@ private:
 		pitch = slider_drytime.GetPos() - 75;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
-		if ((LOWORD(scrollID) == SB_THUMBPOSITION) && window.m_hWnd == slider_drytime.m_hWnd)
+		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
 		{
 			dsp_preset_impl preset;
 			dsp_tempo::make_preset(pitch, p_type,true, preset);

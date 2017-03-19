@@ -273,7 +273,7 @@ private:
 		p_freq = slider_freq.GetPos();
 		p_gain = slider_gain.GetPos();
 		p_type = SendDlgItemMessage(IDC_IIRTYPE, CB_GETCURSEL);
-		if (LOWORD(scrollid) == SB_THUMBPOSITION)
+		if (LOWORD(scrollid) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_iir::make_preset(p_freq, p_gain, p_type, true, preset);
@@ -427,7 +427,7 @@ private:
 		GetConfig();
 		if (IsIIREnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				IIREnable(p_freq, p_gain,p_type, IIR_enabled);
 			}

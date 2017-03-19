@@ -237,7 +237,7 @@ private:
 		GetConfig();
 		if (IsReverbEnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				ReverbEnable(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled);
 			}
@@ -491,7 +491,7 @@ private:
 		dampness = slider_dampness.GetPos()/100.0;
 		roomwidth = slider_roomwidth.GetPos()/100.0;
 		roomsize = slider_roomsize.GetPos()/100.0;
-		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_reverb::make_preset(drytime,wettime,dampness,roomwidth,roomsize,true, preset );

@@ -574,7 +574,7 @@ private:
 		slowratio = slider_slowratio.GetPos() / 1000.0;
 		gain = slider_gain.GetPos() / 200.0;
 		gain = 1.0 + (gain);
-		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_dynamics::make_preset(peaklimit, releasetime, fastratio, slowratio, gain,true, preset);
@@ -707,7 +707,7 @@ private:
 		GetConfig();
 		if (IsDynamicsEnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				DynamicsEnable(peaklimit, releasetime, fastratio, slowratio, gain,dynamics_enabled);
 			}

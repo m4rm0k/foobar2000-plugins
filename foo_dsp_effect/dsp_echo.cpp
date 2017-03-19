@@ -223,7 +223,7 @@ private:
 		GetConfig();
 		if (IsEchoEnabled())
 		{
-			if (LOWORD(scrollID) == SB_THUMBPOSITION)
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
 				EchoEnable(ms,amp, echo_enabled);
 			}
@@ -437,7 +437,7 @@ private:
 	{
 		ms = m_slider_ms.GetPos() + MSRangeMin;
 		amp = m_slider_amp.GetPos() + AmpRangeMin;
-		if (LOWORD(nSBCode) == SB_THUMBPOSITION)
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
 			dsp_echo::make_preset(ms, amp, true, preset);
