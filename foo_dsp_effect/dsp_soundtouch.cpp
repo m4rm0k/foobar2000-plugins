@@ -165,12 +165,28 @@ public:
 
 			if (pitch_shifter == 1)
 			{
+				if (p_soundtouch)
+				{
+					insert_chunks_st();
+					delete p_soundtouch;
+					p_soundtouch = 0;
+				}
+
+
+				if (rubber)
+				{
+					insert_chunks_rubber();
+					delete rubber;
+					if (plugbuf)delete plugbuf;
+					if (m_scratch)delete m_scratch;
+					plugbuf = 0;
+					m_scratch = 0;
+					rubber = 0;
+				}
 				
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0, pow(2.0, pitch_amount / 12.0));
 				if (!rubber) return 0;
-				if (plugbuf)delete plugbuf;
-				if (m_scratch)delete m_scratch;
 				plugbuf = new float*[m_ch];
 				m_scratch = new float*[m_ch];
 				if (m_rate > 48000)
@@ -193,6 +209,26 @@ public:
 
 			if (pitch_shifter == 0)
 			{
+
+				if (p_soundtouch)
+				{
+					insert_chunks_st();
+					delete p_soundtouch;
+					p_soundtouch = 0;
+				}
+
+
+				if (rubber)
+				{
+					insert_chunks_rubber();
+					delete rubber;
+					if (plugbuf)delete plugbuf;
+					if (m_scratch)delete m_scratch;
+					plugbuf = 0;
+					m_scratch = 0;
+					rubber = 0;
+				}
+
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
 				p_soundtouch = new SoundTouch;
@@ -482,15 +518,37 @@ public:
 			{
 				if (p_soundtouch)
 				{
+					insert_chunks_st();
 					delete p_soundtouch;
 					p_soundtouch = 0;
 				}
+
+
+				if (rubber)
+				{
+					insert_chunks_rubber();
+					delete rubber;
+					if (plugbuf)delete plugbuf;
+					if (m_scratch)delete m_scratch;
+					plugbuf = 0;
+					m_scratch = 0;
+					rubber = 0;
+				}
+
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				if (!rubber) return 0;
-				if (plugbuf)delete plugbuf;
-				if (m_scratch)delete m_scratch;
+				if (plugbuf)
+				{
+					delete plugbuf;
+					plugbuf = NULL;
+				}
+				if (m_scratch)
+				{
+					delete m_scratch;
+					m_scratch = NULL;
+				}
 				if (m_rate > 48000)
 				{
 					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
@@ -513,14 +571,27 @@ public:
 			{
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
+				
+				if (p_soundtouch)
+				{
+					insert_chunks_st();
+					delete p_soundtouch;
+					p_soundtouch = 0;
+				}
+
+
 				if (rubber)
 				{
 					insert_chunks_rubber();
 					delete rubber;
 					if (plugbuf)delete plugbuf;
 					if (m_scratch)delete m_scratch;
-					rubber = NULL;
+					plugbuf = 0;
+					m_scratch = 0;
+					rubber = 0;
 				}
+
+
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
@@ -748,6 +819,13 @@ public:
 
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
+			if (p_soundtouch)
+			{
+				insert_chunks();
+				delete p_soundtouch;
+				p_soundtouch = 0;
+			}
+
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
