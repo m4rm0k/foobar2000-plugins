@@ -85,6 +85,7 @@ public:
 	~dsp_pitch(){
 		if (p_soundtouch)
 		{
+			insert_chunks_st();
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
@@ -208,6 +209,7 @@ public:
 					p_soundtouch->setPitchSemiTones(pitch_amount);
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
+					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);
 					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 				}
 			}
@@ -528,6 +530,7 @@ public:
 					
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
+					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);
 					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 				}
 			}
@@ -838,16 +841,15 @@ typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
 class dsp_config_callback_dispatch : public dsp_config_callback {
 public:
 	void on_core_settings_change(const dsp_chain_config & p_newdata) {
-		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
-			(*walk)->DSPConfigChange(p_newdata);
-		}
+		pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first();
+		(*walk)->DSPConfigChange(p_newdata);
 	}
 };
 
 static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
 
 
-class CMyDSPPopupPitch : public CDialogImpl<CMyDSPPopupPitch>,private DSPConfigNotify
+class CMyDSPPopupPitch : public CDialogImpl<CMyDSPPopupPitch>
 {
 public:
 	CMyDSPPopupPitch( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
@@ -1371,7 +1373,7 @@ void PitchMainMenuWindow()
 	}
 }
 
-class CMyDSPPopupRate : public CDialogImpl<CMyDSPPopupRate>, private DSPConfigNotify
+class CMyDSPPopupRate : public CDialogImpl<CMyDSPPopupRate>
 {
 public:
 	CMyDSPPopupRate( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
@@ -1465,7 +1467,7 @@ static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp
 	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
 }
 
-class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>, private DSPConfigNotify
+class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>
 {
 public:
 	CMyDSPPopupTempo( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }

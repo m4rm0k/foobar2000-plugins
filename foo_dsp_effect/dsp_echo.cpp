@@ -124,9 +124,8 @@ typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
 class dsp_config_callback_dispatch : public dsp_config_callback {
 public:
 	void on_core_settings_change(const dsp_chain_config & p_newdata) {
-		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
-			(*walk)->DSPConfigChange(p_newdata);
-		}
+		pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first();
+		(*walk)->DSPConfigChange(p_newdata);
 	}
 };
 
@@ -361,7 +360,7 @@ void EchoMainMenuWindow()
 }
 
 
-class CMyDSPPopup : public CDialogImpl<CMyDSPPopup>, private DSPConfigNotify
+class CMyDSPPopup : public CDialogImpl<CMyDSPPopup>
 {
 public:
 	CMyDSPPopup(const dsp_preset & initData, dsp_preset_edit_callback & callback) : m_initData(initData), m_callback(callback) { }

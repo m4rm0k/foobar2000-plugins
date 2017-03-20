@@ -126,16 +126,15 @@ typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
 class dsp_config_callback_dispatch : public dsp_config_callback {
 public:
 	void on_core_settings_change(const dsp_chain_config & p_newdata) {
-		for (pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first(); walk.is_valid(); ++walk) {
-			(*walk)->DSPConfigChange(p_newdata);
-		}
+		pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first();
+		(*walk)->DSPConfigChange(p_newdata);
 	}
 };
 
 static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
 
 
-class CMyDSPPopupIIR : public CDialogImpl<CMyDSPPopupIIR>, private DSPConfigNotify
+class CMyDSPPopupIIR : public CDialogImpl<CMyDSPPopupIIR>
 {
 public:
 	CMyDSPPopupIIR( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
