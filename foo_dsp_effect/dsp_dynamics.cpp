@@ -475,23 +475,6 @@ static const GUID guid_cfg_placement =
 static cfg_window_placement cfg_placement(guid_cfg_placement);
 
 
-class _DSPConfigNotify {
-public:
-	virtual void DSPConfigChange(dsp_chain_config const & cfg) {}
-};
-typedef pfc::instanceTracker<_DSPConfigNotify> DSPConfigNotify;
-
-class dsp_config_callback_dispatch : public dsp_config_callback {
-public:
-	void on_core_settings_change(const dsp_chain_config & p_newdata) {
-		pfc::const_iterator<DSPConfigNotify*> walk = DSPConfigNotify::instanceList().first();
-		(*walk)->DSPConfigChange(p_newdata);
-	}
-};
-
-static service_factory_single_t<dsp_config_callback_dispatch> g_dsp_config_callback_dispatch_factory;
-
-
 class CMyDSPPopupDynamics : public CDialogImpl<CMyDSPPopupDynamics>
 {
 public:
@@ -626,7 +609,7 @@ static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_
 
 
 
-class CMyDSPDynamicsWindow : public CDialogImpl<CMyDSPDynamicsWindow>, private DSPConfigNotify
+class CMyDSPDynamicsWindow : public CDialogImpl<CMyDSPDynamicsWindow>
 {
 public:
 	CMyDSPDynamicsWindow() {
