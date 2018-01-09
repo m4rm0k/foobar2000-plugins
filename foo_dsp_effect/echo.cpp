@@ -9,6 +9,7 @@ Echo::Echo()
 	rate = 44100;
 	SetDelay(200);		
 	SetAmp(128);		
+	SetFeedback(50);
 	pos = 0;
 }
 
@@ -62,10 +63,21 @@ void Echo::SetSampleRate( int rate )
 	}
 }
 
+void Echo::SetFeedback(int feedback)
+{
+	this->feedback = feedback;
+	f_feedback = (float)feedback/256.0;
+}
+
 
 int Echo::GetDelay() const
 {
 	return ms;
+}
+
+int Echo::GetFeedback() const
+{
+	return feedback;
 }
 
 
@@ -87,7 +99,7 @@ float Echo::Process(float in)
 	float smp = history[pos];   
 	smp *= f_amp;			
 	smp += in;                
-	history[pos] = smp;       
+	history[pos] = smp  * f_feedback;
 	pos = ( pos + 1 ) % delay;
 	return smp;
 }

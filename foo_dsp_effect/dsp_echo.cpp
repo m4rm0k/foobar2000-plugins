@@ -12,14 +12,14 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 class dsp_echo : public dsp_impl_base
 {
 	int m_rate, m_ch, m_ch_mask;
-	int m_ms, m_amp;
+	int m_ms, m_amp, m_fb;
 	bool enabled;
 	pfc::array_t<Echo> m_buffers;
 public:
-	dsp_echo( dsp_preset const & in ) : m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 ), m_ms( 200 ), m_amp( 128 )
+	dsp_echo( dsp_preset const & in ) : m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 ), m_ms( 200 ), m_amp( 128 ),m_fb(128)
 	{
 		enabled = true;
-		parse_preset( m_ms, m_amp,enabled, in );
+		parse_preset( m_ms, m_amp,m_fb,enabled, in );
 	}
 
 	static GUID g_get_guid()
@@ -46,6 +46,7 @@ public:
 				e.SetSampleRate( m_rate );
 				e.SetDelay( m_ms );
 				e.SetAmp( m_amp );
+				e.SetFeedback(m_fb);
 			}
 		}
 
@@ -85,7 +86,7 @@ public:
 	}
 	static bool g_get_default_preset( dsp_preset & p_out )
 	{
-		make_preset( 200, 128,true, p_out );
+		make_preset( 200, 128,128,true, p_out );
 		return true;
 	}
 	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
@@ -93,24 +94,26 @@ public:
 		::RunDSPConfigPopup( p_data, p_parent, p_callback );
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( int ms, int amp,bool enabled, dsp_preset & out )
+	static void make_preset( int ms, int amp,int feedback,bool enabled, dsp_preset & out )
 	{
-		dsp_preset_builder builder; builder << ms; builder << amp; builder << enabled; builder.finish(g_get_guid(), out);
+		dsp_preset_builder builder; builder << ms; builder << amp; builder << feedback; builder << enabled; builder.finish(g_get_guid(), out);
 	}
-	static void parse_preset(int & ms, int & amp, bool enabled, const dsp_preset & in)
+	static void parse_preset(int & ms, int & amp,int & feedback, bool enabled, const dsp_preset & in)
 	{
 		try
 		{
-			dsp_preset_parser parser(in); parser >> ms; parser >> amp; parser >> enabled;
+			dsp_preset_parser parser(in); parser >> ms; parser >> amp; parser >> feedback; parser >> enabled;
 		}
-		catch (exception_io_data) { ms = 200; amp = 128; enabled = true; }
+		catch (exception_io_data) { ms = 200; amp = 128; feedback = 128; enabled = true; }
 	}
 };
 
 static dsp_factory_t<dsp_echo> g_dsp_echo_factory;
 
+// {EBE89923-D771-4AD0-B121-991898451D40}
 static const GUID guid_cfg_placement =
-{ 0x396d9411, 0x447e, 0x49a8,{ 0x89, 0x63, 0x4, 0x76, 0xd8, 0x5, 0xb0, 0x31 } };
+{ 0xebe89923, 0xd771, 0x4ad0,{ 0xb1, 0x21, 0x99, 0x18, 0x98, 0x45, 0x1d, 0x40 } };
+
 
 static cfg_window_placement cfg_placement(guid_cfg_placement);
 
@@ -122,6 +125,7 @@ public:
 	CMyDSPEchoWindow() {
 		ms = 200;
 		amp = 128;
+		feedback = 128;
 		echo_enabled = true;
 
 	}
@@ -141,7 +145,6 @@ public:
 	BEGIN_MSG_MAP(CMyDSPEchoWindow)
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_ECHOENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
 		MSG_WM_DESTROY(OnDestroy)
@@ -178,9 +181,9 @@ private:
 	}
 
 
-	void EchoEnable(int ms, int amp, bool echo_enabled) {
+	void EchoEnable(int ms, int amp,int feedback, bool echo_enabled) {
 		dsp_preset_impl preset;
-		dsp_echo::make_preset(ms, amp, echo_enabled, preset);
+		dsp_echo::make_preset(ms, amp,feedback, echo_enabled, preset);
 		DSPEnable(preset);
 	}
 
@@ -189,7 +192,7 @@ private:
 		if (IsEchoEnabled()) {
 			GetConfig();
 			dsp_preset_impl preset;
-			dsp_echo::make_preset(ms, amp, echo_enabled, preset);
+			dsp_echo::make_preset(ms, amp,feedback, echo_enabled, preset);
 			//yes change api;
 			DSPEnable(preset);
 		}
@@ -207,7 +210,7 @@ private:
 		{
 			if (LOWORD(scrollID) != SB_THUMBTRACK)
 			{
-				EchoEnable(ms,amp, echo_enabled);
+				EchoEnable(ms,amp,feedback, echo_enabled);
 			}
 		}
 
@@ -237,7 +240,7 @@ private:
 		dsp_preset_impl preset;
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_echo, preset)) {
 			SetEchoEnabled(true);
-			dsp_echo::parse_preset(ms, amp, echo_enabled, preset);
+			dsp_echo::parse_preset(ms, amp,feedback, echo_enabled, preset);
 			SetEchoEnabled(echo_enabled);
 			SetConfig();
 		}
@@ -249,7 +252,7 @@ private:
 
 	void OnConfigChanged() {
 		if (IsEchoEnabled()) {
-			EchoEnable(ms,amp, echo_enabled);
+			EchoEnable(ms,amp,feedback, echo_enabled);
 		}
 		else {
 			EchoDisable();
@@ -262,8 +265,9 @@ private:
 	{
 		ms = m_slider_ms.GetPos() + MSRangeMin;
 		amp = m_slider_amp.GetPos() + AmpRangeMin;
+		feedback = m_slider_fb.GetPos() + AmpRangeMin;
 		echo_enabled = IsEchoEnabled();
-		RefreshLabel(ms, amp);
+		RefreshLabel(ms, amp, feedback);
 
 
 	}
@@ -272,8 +276,9 @@ private:
 	{
 		m_slider_ms.SetPos(pfc::clip_t<t_int32>(ms, MSRangeMin, MSRangeMax) - MSRangeMin);
 		m_slider_amp.SetPos(pfc::clip_t<t_int32>(amp, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
+		m_slider_fb.SetPos(pfc::clip_t<t_int32>(feedback, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
 
-		RefreshLabel(ms, amp);
+		RefreshLabel(ms, amp,feedback);
 
 	}
 
@@ -288,6 +293,9 @@ private:
 
 		m_slider_amp = GetDlgItem(IDC_SLIDER_AMP1);
 		m_slider_amp.SetRange(0, AmpRangeTotal);
+
+		m_slider_fb = GetDlgItem(IDC_SLIDER_FB1);
+		m_slider_fb.SetRange(0, AmpRangeTotal);
 
 
 		m_buttonEchoEnabled = GetDlgItem(IDC_ECHOENABLED);
@@ -309,17 +317,19 @@ private:
 		DestroyWindow();
 	}
 
-	void RefreshLabel(int ms, int amp)
+	void RefreshLabel(int ms, int amp, int feedback)
 	{
-		pfc::string_formatter msg; msg << pfc::format_int(ms) << " ms";
+		pfc::string_formatter msg; msg << "Delay time: " << pfc::format_int(ms) << " ms";
 		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_MS1, msg);
-		msg.reset(); msg << pfc::format_int(amp * 100 / 256) << "%";
+		msg.reset(); msg << "Echo volume: "  << pfc::format_int(amp * 100 / 256) << "%";
 		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_AMP1, msg);
+		msg.reset(); msg << "Echo feedback: " << pfc::format_int(feedback * 100 / 256) << "%";
+		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_FB1, msg);
 	}
 
 	bool echo_enabled;
-	int ms, amp;
-	CTrackBarCtrl m_slider_ms, m_slider_amp;
+	int ms, amp,feedback;
+	CTrackBarCtrl m_slider_ms, m_slider_amp,m_slider_fb;
 	CButton m_buttonEchoEnabled;
 	bool m_ownEchoUpdate;
 };
@@ -384,10 +394,11 @@ private:
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_echo, preset2)) {
 			bool enabled;
 			bool dynamics_enabled;
-			dsp_echo::parse_preset(ms, amp, enabled, preset2);
+			dsp_echo::parse_preset(ms, amp,feedback, enabled, preset2);
 			m_slider_ms.SetPos(pfc::clip_t<t_int32>(ms, MSRangeMin, MSRangeMax) - MSRangeMin);
 			m_slider_amp.SetPos(pfc::clip_t<t_int32>(amp, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
-			RefreshLabel(ms, amp);
+			m_slider_fb.SetPos(pfc::clip_t<t_int32>(amp, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
+			RefreshLabel(ms, amp,feedback);
 		}
 	}
 
@@ -398,14 +409,17 @@ private:
 
 		m_slider_amp = GetDlgItem(IDC_SLIDER_AMP);
 		m_slider_amp.SetRange(0, AmpRangeTotal);
+		m_slider_fb = GetDlgItem(IDC_SLIDER_FB);
+		m_slider_fb.SetRange(0, AmpRangeTotal);
 
 		{
 
-			bool enabled;
-			dsp_echo::parse_preset(ms, amp, enabled, m_initData);
+			bool enabled = true;
+			dsp_echo::parse_preset(ms, amp,feedback, enabled, m_initData);
 			m_slider_ms.SetPos(pfc::clip_t<t_int32>(ms, MSRangeMin, MSRangeMax) - MSRangeMin);
 			m_slider_amp.SetPos(pfc::clip_t<t_int32>(amp, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
-			RefreshLabel(ms, amp);
+			m_slider_fb.SetPos(pfc::clip_t<t_int32>(feedback, AmpRangeMin, AmpRangeMax) - AmpRangeMin);
+			RefreshLabel(ms, amp,feedback);
 		}
 		return TRUE;
 	}
@@ -419,27 +433,30 @@ private:
 	{
 		ms = m_slider_ms.GetPos() + MSRangeMin;
 		amp = m_slider_amp.GetPos() + AmpRangeMin;
+		feedback = m_slider_fb.GetPos() + AmpRangeMin;
 		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
-			dsp_echo::make_preset(ms, amp, true, preset);
+			dsp_echo::make_preset(ms, amp,feedback, true, preset);
 			m_callback.on_preset_changed(preset);
 		}
-		RefreshLabel(ms, amp);
+		RefreshLabel(ms, amp,feedback);
 	}
 
-	void RefreshLabel(int ms, int amp)
+	void RefreshLabel(int ms, int amp,int feedback)
 	{
-		pfc::string_formatter msg; msg << pfc::format_int(ms) << " ms";
+		pfc::string_formatter msg; msg << "Delay time: " << pfc::format_int(ms) << " ms";
 		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_MS, msg);
-		msg.reset(); msg << pfc::format_int(amp * 100 / 256) << "%";
+		msg.reset(); msg << "Echo volume: " << pfc::format_int(amp * 100 / 256) << "%";
 		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_AMP, msg);
+		msg.reset(); msg << "Echo feedback: " << pfc::format_int(feedback * 100 / 256) << "%";
+		::uSetDlgItemText(*this, IDC_SLIDER_LABEL_FB, msg);
 	}
 
 	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 	dsp_preset_edit_callback & m_callback;
-	int ms, amp;
-	CTrackBarCtrl m_slider_ms, m_slider_amp;
+	int ms, amp, feedback;
+	CTrackBarCtrl m_slider_ms, m_slider_amp, m_slider_fb;
 };
 
 static void RunDSPConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)

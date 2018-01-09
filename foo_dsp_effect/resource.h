@@ -16,8 +16,10 @@
 #define IDC_SLIDER_LABEL_MS             1002
 #define IDC_SLIDER_AMP                  1003
 #define IDC_DRYTIME                     1004
+#define IDC_SLIDER_FB                   1004
 #define IDC_SLIDER_LABEL_AMP            1005
 #define IDC_DRYTIMEINFO                 1006
+#define IDC_SLIDER_LABEL_FB             1006
 #define IDC_WETTIME                     1007
 #define IDC_WETTIMEINFO                 1008
 #define IDC_DAMPING                     1009
@@ -66,7 +68,6 @@
 #define IDD_DYNAMICS1                   1049
 #define IDC_FASTRATIO                   1050
 #define IDC_DYNAMICSSLOWRATIO1          1050
-#define IDD_ECHO1                       1050
 #define IDC_DYNAMICSFASTRATIO           1051
 #define IDD_IIR1                        1051
 #define IDC_IIRQINFO                    1052
@@ -76,12 +77,19 @@
 #define IDC_DYNAMICSSLOWRATIO           1054
 #define IDD_WAHWAH1                     1054
 #define IDC_IIRGAIN                     1055
+#define IDD_TREMELO                     1055
 #define IDC_GAIN                        1056
+#define IDD_VIBRATO                     1056
 #define IDC_DYNAMICSGAIN                1057
+#define IDD_VIBRATO1                    1057
 #define IDC_IIRGAININFO                 1058
+#define IDD_TREMELO1                    1058
 #define IDC_DISPLAY_GAIN                1059
+#define IDD_CHORUS                      1059
 #define IDC_DYNAMICSDISPLAY_GAIN        1060
+#define IDD_CHORUS1                     1060
 #define IDC_DISPLAY_PEAK                1061
+#define IDD_ECHO1                       1061
 #define IDC_DYNAMICSDISPLAY_PEAK        1062
 #define IDC_IIRTYPE                     1063
 #define IDC_DISPLAY_RELEASE             1064
@@ -122,11 +130,6 @@
 #define IDC_DYNAMICSENABLED             1091
 #define IDC_DYNAMICSDISPLAY_PEAK1       1092
 #define IDC_DYNAMICSDISPLAY_GAIN1       1093
-#define IDC_SLIDER_MS1                  1094
-#define IDC_SLIDER_LABEL_MS1            1095
-#define IDC_SLIDER_AMP1                 1096
-#define IDC_SLIDER_LABEL_AMP1           1097
-#define IDC_ECHOENABLED                 1098
 #define IDC_IIRFREQ1                    1099
 #define IDC_IIRFREQINFO1                1100
 #define IDC_IIRGAIN1                    1101
@@ -169,15 +172,57 @@
 #define IDC_WAHLFOPHASEINFO1            1138
 #define IDC_CHECK1                      1140
 #define IDC_WAHENABLED                  1140
+#define IDC_VIBRATOENABLED              1140
+#define IDC_TREMELOENABLED              1140
+#define IDC_TREMELOFREQ                 1141
+#define IDC_TREMELOFREQLAB              1142
+#define IDC_TREMELODEPTH                1143
+#define IDC_TREMELODEPTHLAB             1144
+#define IDC_VIBRATOFREQ                 1145
+#define IDC_VIBRATOFREQLAB              1146
+#define IDC_VIBRATODEPTH                1147
+#define IDC_VIBRATODEPTHLAB             1148
+#define IDC_VIBRATOFREQ1                1149
+#define IDC_VIBRATOFREQLAB1             1153
+#define IDC_VIBRATODEPTH1               1154
+#define IDC_VIBRATODEPTHLAB1            1155
+#define IDC_TREMELOFREQ1                1156
+#define IDC_TREMELOFREQLAB1             1157
+#define IDC_TREMELODEPTH1               1158
+#define IDC_TREMELODEPTHLAB1            1159
+#define IDC_CHORUSDELAYMS               1160
+#define IDC_CHORUSDELAYLAB              1161
+#define IDC_CHORUSDEPTHMS               1162
+#define IDC_CHORUSDEPTHMSLAB            1163
+#define IDC_CHORUSLFOFREQ               1164
+#define IDC_CHORUSLFOFREQLAB            1165
+#define IDC_CHORUSDRYWET                1166
+#define IDC_CHORUSDRYWETLAB             1167
+#define IDC_CHORUSDELAYMS1              1168
+#define IDC_CHORUSDELAYLAB1             1169
+#define IDC_CHORUSDEPTHMSLAB1           1170
+#define IDC_CHORUSLFOFREQ1              1171
+#define IDC_CHORUSLFOFREQLAB1           1172
+#define IDC_CHORUSDRYWET1               1173
+#define IDC_CHORUSDRYWETLAB1            1174
+#define IDC_CHORUSENABLED               1175
+#define IDC_CHORUSDEPTHMS1              1176
+#define IDC_ECHOENABLED                 1177
+#define IDC_SLIDER_MS1                  1178
+#define IDC_SLIDER_LABEL_MS1            1179
+#define IDC_SLIDER_FB1                  1180
+#define IDC_SLIDER_LABEL_FB1            1181
+#define IDC_SLIDER_AMP1                 1182
+#define IDC_SLIDER_LABEL_AMP1           1183
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        122
+#define _APS_NEXT_RESOURCE_VALUE        124
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1141
+#define _APS_NEXT_CONTROL_VALUE         1184
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

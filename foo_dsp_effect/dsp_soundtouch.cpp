@@ -35,7 +35,7 @@ private:
 		while (1)
 		{
 			t_size samples = rubber->available();
-			if (samples <= 0)break;
+			if (samples <= 0)return;
 			samples = rubber->retrieve(m_scratch, samples);
 			if (samples > 0)
 			{
@@ -97,11 +97,11 @@ public:
 			delete rubber;
 			for (int c = 0; c < m_ch; ++c)
 			{
-				delete plugbuf[c]; plugbuf[c] = NULL;
-				delete m_scratch[c]; m_scratch[c] = NULL;
+				delete[] plugbuf[c]; plugbuf[c] = NULL;
+				delete[] m_scratch[c]; m_scratch[c] = NULL;
 			}
-			delete plugbuf;
-			delete m_scratch;
+			delete[] plugbuf;
+			delete[] m_scratch;
 			m_scratch = NULL;
 			plugbuf = NULL;
 			rubber = 0;
@@ -173,25 +173,26 @@ public:
 			{
 				
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
+				
+				if (rubber) delete rubber;
+				if (plugbuf) {
+					for (int c = 0; c < m_ch; ++c) delete[] plugbuf[c];
+					delete[] plugbuf;
+				}
+				if (m_scratch) {
+					for (int c = 0; c < m_ch; ++c) delete[] m_scratch[c];
+					delete[] m_scratch;
+				}
+
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, 1.0, pow(2.0, pitch_amount / 12.0));
 				if (!rubber) return 0;
 				plugbuf = new float*[m_ch];
 				m_scratch = new float*[m_ch];
-				if (m_rate > 48000)
-				{
-					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
-					samplebuf.set_size(BUFFER_SIZE_RB*m_ch);
-					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RB];
-					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RB];
-				}
-				else
-				{
-					sample_buffer.set_size(BUFFER_SIZE*m_ch);
-					samplebuf.set_size(BUFFER_SIZE*m_ch);
-					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
-					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
-				}
-				
+				sample_buffer.set_size(BUFFER_SIZE*m_ch);
+				samplebuf.set_size(BUFFER_SIZE*m_ch + 1024 + 8192);
+				rubber->setMaxProcessSize(BUFFER_SIZE);
+				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE + 1024 + 8192];
+				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE + 1024 + 8192];
 				st_enabled = true;
 			}
 
@@ -200,6 +201,9 @@ public:
 
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
+				
+				if (p_soundtouch) delete p_soundtouch;
+				
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
@@ -221,7 +225,7 @@ public:
 		if (rubber&& pitch_shifter == 1) {
 			while (sample_count > 0)
 			{
-				int toCauseProcessing = rubber->getSamplesRequired();
+				int toCauseProcessing = BUFFER_SIZE;
 				int todo = min(toCauseProcessing - buffered, sample_count);
 				sample_buffer.write(src, todo*m_ch);
 				src += todo * m_ch;
@@ -337,7 +341,6 @@ class dsp_tempo : public dsp_impl_base
 	RubberBandStretcher * rubber;
 	float **plugbuf;
 	float **m_scratch;
-
 	int m_rate, m_ch, m_ch_mask;
 	float pitch_amount;
 	circular_buffer<float>sample_buffer;
@@ -347,26 +350,26 @@ class dsp_tempo : public dsp_impl_base
 	int pitch_shifter;
 private:
 	void insert_chunks_rubber()
-	{
-		while (1)
-		{
-			t_size samples = rubber->available();
-			if (samples <= 0)break;
-			samples = rubber->retrieve(m_scratch, samples);
-			if (samples > 0)
+	{	
+			while(1)
 			{
-				float *data = samplebuf.get_ptr();
-				for (int c = 0; c < m_ch; ++c) {
-					int j = 0;
-					while (j < samples) {
-						data[j * m_ch + c] = m_scratch[c][j];
-						++j;
+				t_size samples = rubber->available();
+				if (samples <= 0)return;
+				samples = rubber->retrieve(m_scratch, samples);
+				if (samples > 0)
+				{
+					float *data = samplebuf.get_ptr();
+					for (int c = 0; c < m_ch; ++c) {
+						int j = 0;
+						while (j < samples) {
+							data[j * m_ch + c] = m_scratch[c][j];
+							++j;
+						}
 					}
+					audio_chunk * chunk = insert_chunk(samples*m_ch);
+					chunk->set_data(data, samples, m_ch, m_rate);
 				}
-				audio_chunk * chunk = insert_chunk(samples*m_ch);
-				chunk->set_data(data, samples, m_ch, m_rate);
 			}
-		}
 	}
 
 
@@ -413,11 +416,11 @@ public:
 			delete rubber;
 			for (int c = 0; c < m_ch; ++c)
 			{
-				delete plugbuf[c]; plugbuf[c] = NULL;
-				delete m_scratch[c]; m_scratch[c] = NULL;
+				delete[] plugbuf[c]; plugbuf[c] = NULL;
+				delete[] m_scratch[c]; m_scratch[c] = NULL;
 			}
-			delete plugbuf;
-			delete m_scratch;
+			delete[] plugbuf;
+			delete[] m_scratch;
 			m_scratch = NULL;
 			plugbuf = NULL;
 			rubber = 0;
@@ -493,25 +496,26 @@ public:
 			{
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
+				
+				if (rubber) delete rubber;
+				if (plugbuf) {
+					for (int c = 0; c < m_ch; ++c) delete[] plugbuf[c];
+					delete[] plugbuf;
+				}
+				if (m_scratch) {
+					for (int c = 0; c < m_ch; ++c) delete[] m_scratch[c];
+					delete[] m_scratch;
+				}
+
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				m_scratch = new float *[m_ch];
 				plugbuf = new float *[m_ch];
 				if (!rubber) return 0;
-				if (m_rate > 48000)
-				{
-					sample_buffer.set_size(BUFFER_SIZE_RB*m_ch);
-					samplebuf.set_size(BUFFER_SIZE_RB*m_ch);
-					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RB];
-					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RB];
-				}
-				else
-				{
-					sample_buffer.set_size(BUFFER_SIZE*m_ch);
-					samplebuf.set_size(BUFFER_SIZE*m_ch);
-					for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE];
-					for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE];
-				}
-
+				sample_buffer.set_size(BUFFER_SIZE*m_ch);
+				samplebuf.set_size(BUFFER_SIZE*m_ch + 1024 + 8192);
+				rubber->setMaxProcessSize(BUFFER_SIZE);
+				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE+ 1024 + 8192];
+				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE + 1024 + 8192];
 				st_enabled = true;
 			}
 
@@ -519,6 +523,7 @@ public:
 			{
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
+				if (p_soundtouch) delete p_soundtouch;
 				p_soundtouch = new SoundTouch;
 				if (!p_soundtouch) return 0;
 				if (p_soundtouch)
@@ -542,7 +547,7 @@ public:
 		if (rubber&& pitch_shifter == 1) {
 			while (sample_count > 0)
 			{
-				int toCauseProcessing = rubber->getSamplesRequired();
+				int toCauseProcessing = BUFFER_SIZE;
 				int todo = min(toCauseProcessing - buffered, sample_count);
 				sample_buffer.write(src, todo*m_ch);
 				src += todo * m_ch;
@@ -756,6 +761,7 @@ public:
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
+			if (p_soundtouch) delete p_soundtouch;
 			p_soundtouch = new SoundTouch;
 			sample_buffer.set_size(BUFFER_SIZE*m_ch);
 			if (!p_soundtouch) return 0;
@@ -1228,7 +1234,7 @@ private:
 		pitch_enabled = IsPitchEnabled();
 		
 
-		tempo= slider_tempo.GetPos() - 75;
+		tempo= slider_tempo.GetPos() - 95;
 		t_type = SendDlgItemMessage(IDC_TEMPOTYPE2, CB_GETCURSEL);
 		tempo_enabled = IsTempoEnabled();
 
@@ -1251,7 +1257,7 @@ private:
 		
 		w = GetDlgItem(IDC_TEMPOTYPE2);
 		::SendMessage(w, CB_SETCURSEL, t_type, 0);
-		slider_tempo.SetPos((double)(tempo + 75));
+		slider_tempo.SetPos((double)(tempo + 95));
 
 		slider_rate.SetPos((double)(rate + 50));
 
@@ -1278,7 +1284,7 @@ private:
 		m_ownPitchUpdate = false;
 
 		slider_tempo = GetDlgItem(IDC_TEMPO2);
-		slider_tempo.SetRange(0, tempomax);
+		slider_tempo.SetRange(0, 190);
 		m_buttonTempoEnabled = GetDlgItem(IDC_TEMPOENABLED);
 		w = GetDlgItem(IDC_TEMPOTYPE2);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
@@ -1459,7 +1465,7 @@ public:
 	enum
 	{
 		pitchmin = 0,
-		pitchmax = 150
+		pitchmax = 180
 
 	};
 	BEGIN_MSG_MAP( CMyDSPPopup )
@@ -1488,7 +1494,7 @@ private:
 			dsp_pitch::parse_preset(pitch, pitch_type, enabled, preset2);
 			CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
-			slider_drytime.SetPos((double)(pitch + 75));
+			slider_drytime.SetPos((double)(pitch + 90));
 			RefreshLabel(pitch);
 		}
 	}
@@ -1523,7 +1529,7 @@ private:
 	void OnChange(UINT, int id, CWindow)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 75;
+		pitch = slider_drytime.GetPos() - 90;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		{
@@ -1537,7 +1543,7 @@ private:
 	void OnScroll(UINT scrollID, int id, CWindow window)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 75;
+		pitch = slider_drytime.GetPos() - 90;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)

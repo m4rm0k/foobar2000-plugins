@@ -13,8 +13,10 @@ private:
 	int delay;      // delay in number of samples
 	int ms;         // delay in miliseconds
 	int rate;       // sample rate
+	int feedback;   // feedback
 
 	float f_amp;    // amplification (0-1)
+	float f_feedback; //feedback
 
 public:
 	Echo();
@@ -23,6 +25,8 @@ public:
 	void SetDelay(int ms);
 	void SetAmp(int amp);
 	void SetSampleRate(int rate);
+	void SetFeedback(int feedback);
+	inline int GetFeedback() const;
 	inline int GetDelay() const;
 	inline int GetAmp() const;
 	inline int GetSampleRate() const;
