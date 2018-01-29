@@ -24,7 +24,6 @@
       <Filter>DSP</Filter>
     </ClCompile>
     <ClCompile Include="dsp_soundtouch.cpp" />
-    <ClCompile Include="dsp_rubberband.cpp" />
     <ClCompile Include="SoundTouch\AAFilter.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
@@ -67,6 +66,9 @@
     <ClCompile Include="SoundTouch\TDStretch.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
+    <ClCompile Include="dsp_chorus.cpp" />
+    <ClCompile Include="dsp_tremelo.cpp" />
+    <ClCompile Include="dsp_vibrato.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -131,6 +133,7 @@
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
     <ClInclude Include="dsp_guids.h" />
+    <ClInclude Include="..\foo_sample\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_dsp_effect.rc" />

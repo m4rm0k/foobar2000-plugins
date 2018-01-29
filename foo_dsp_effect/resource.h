@@ -12,6 +12,7 @@
 #define IDD_BANDPASS1                   107
 #define IDD_TEMPO                       108
 #define IDD_NORCH                       112
+#define IDD_UI_ELEMENT                  124
 #define IDC_SLIDER_MS                   1001
 #define IDC_SLIDER_LABEL_MS             1002
 #define IDC_SLIDER_AMP                  1003
@@ -214,15 +215,26 @@
 #define IDC_SLIDER_LABEL_FB1            1181
 #define IDC_SLIDER_AMP1                 1182
 #define IDC_SLIDER_LABEL_AMP1           1183
+#define IDC_PITCHINFO_UI                1184
+#define IDC_PITCH_UI                    1185
+#define IDC_PITCHENABLED_UI             1186
+#define IDC_PITCHTYPE_UI                1187
+#define IDC_TEMPOINFO_UI                1188
+#define IDC_TEMPO_UI                    1189
+#define IDC_TEMPOENABLED_UI             1190
+#define IDC_TEMPOTYPE_UI                1191
+#define IDC_RATEINFO_UI                 1192
+#define IDC_RATE_UI                     1193
+#define IDC_RATENABLED_UI               1194
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        124
+#define _APS_NEXT_RESOURCE_VALUE        125
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1184
+#define _APS_NEXT_CONTROL_VALUE         1195
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

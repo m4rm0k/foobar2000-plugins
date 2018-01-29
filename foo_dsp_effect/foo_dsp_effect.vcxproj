@@ -120,20 +120,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dsp_chorus.cpp" />
     <ClCompile Include="dsp_dynamics.cpp" />
     <ClCompile Include="dsp_echo.cpp" />
     <ClCompile Include="dsp_freeverb.cpp" />
     <ClCompile Include="dsp_iir.cpp" />
     <ClCompile Include="dsp_phaser.cpp" />
-    <ClCompile Include="dsp_rubberband.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
-    </ClCompile>
     <ClCompile Include="dsp_soundtouch.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="dsp_tremelo.cpp" />
+    <ClCompile Include="dsp_vibrato.cpp" />
     <ClCompile Include="dsp_wahwah.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="echo.cpp" />
@@ -160,6 +158,7 @@
     <ResourceCompile Include="foo_dsp_effect.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\foo_sample\resource.h" />
     <ClInclude Include="circular_buffer.h" />
     <ClInclude Include="dsp_guids.h" />
     <ClInclude Include="resource.h" />

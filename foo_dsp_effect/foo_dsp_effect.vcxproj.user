@@ -6,7 +6,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerCommandArguments>C:\apps\foobar2000</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>..\..\..\..\..\..\apps\foobar2000</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:\apps\foobar2000</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\apps\foobar2000\foobar2000.exe</LocalDebuggerCommand>

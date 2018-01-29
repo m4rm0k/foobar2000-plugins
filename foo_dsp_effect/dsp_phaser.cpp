@@ -182,29 +182,6 @@ private:
 	void SetPhaserEnabled(bool state) { m_buttonPhaserEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 	bool IsPhaserEnabled() { return m_buttonPhaserEnabled == NULL || m_buttonPhaserEnabled.GetCheck() == BST_CHECKED; }
 
-
-	void DSPEnable(const dsp_preset & data) {
-		//altered from enable_dsp to append to DSP array
-		dsp_chain_config_impl cfg;
-		static_api_ptr_t<dsp_config_manager>()->get_core_settings(cfg);
-		bool found = false;
-		bool changed = false;
-		t_size n, m = cfg.get_count();
-		for (n = 0; n < m; n++) {
-			if (cfg.get_item(n).get_owner() == data.get_owner()) {
-				found = true;
-				if (cfg.get_item(n) != data) {
-					cfg.replace_item(data, n);
-					changed = true;
-				}
-				break;
-			}
-		}
-		//append to DSP queue
-		if (!found) { if (n > 0)n++; cfg.insert_item(data, n); changed = true; }
-		if (changed) static_api_ptr_t<dsp_config_manager>()->set_core_settings(cfg);
-	}
-
 	void DynamicsDisable() {
 		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_phaser);
 	}
@@ -213,7 +190,7 @@ private:
 	void PhaserEnable(float freq, float startphase, float fb, int depth, int stages, int drywet, bool enabled) {
 		dsp_preset_impl preset;
 		dsp_phaser::make_preset(freq, startphase,fb, depth, stages,drywet,enabled, preset);
-		DSPEnable(preset);
+		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 	}
 
 	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
@@ -223,7 +200,7 @@ private:
 			dsp_preset_impl preset;
 			dsp_phaser::make_preset(freq, startphase, fb, depth, stages, drywet, phaser_enabled, preset);
 			//yes change api;
-			DSPEnable(preset);
+			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 		}
 		else {
 			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_phaser);
