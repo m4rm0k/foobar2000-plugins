@@ -316,8 +316,9 @@ static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_
 static dsp_factory_t<dsp_chorus> g_dsp_chorus_factory;
 
 // {1DC17CA0-0023-4266-AD59-691D566AC291}
-static const GUID guid_choruselem
-{ 0x634933f1, 0xbdb6, 0x4d4c,{ 0x8a, 0x68, 0x28, 0xb9, 0xd, 0xc0, 0xfe, 0x3 } };
+static const GUID guid_choruselem=
+{ 0x5bf17f6, 0x67b2, 0x42e9,{ 0xb8, 0x54, 0xa0, 0xd0, 0xf8, 0xce, 0xd4, 0xde } };
+
 
 class uielem_chorus : public CDialogImpl<uielem_chorus>, public ui_element_instance {
 public:
@@ -381,10 +382,10 @@ private:
 		}
 
 
-		ret.m_min_width = MulDiv(480, DPI.cx, 96);
-		ret.m_min_height = MulDiv(300, DPI.cy, 96);
-		ret.m_max_width = MulDiv(480, DPI.cx, 96);
-		ret.m_max_height = MulDiv(300, DPI.cy, 96);
+		ret.m_min_width = MulDiv(420, DPI.cx, 96);
+		ret.m_min_height = MulDiv(330, DPI.cy, 96);
+		ret.m_max_width = MulDiv(420, DPI.cx, 96);
+		ret.m_max_height = MulDiv(330, DPI.cy, 96);
 
 		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
 		ret.adjustForWindow(*this);

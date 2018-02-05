@@ -4,6 +4,8 @@
 #include "resource.h"
 #include "wahwah.h"
 #include "dsp_guids.h"
+
+namespace {
 static void RunConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 class dsp_wahwah : public dsp_impl_base
 {
@@ -126,7 +128,8 @@ public:
 
 // {1DC17CA0-0023-4266-AD59-691D566AC291}
 static const GUID guid_choruselem =
-{ 0x715a5d0c, 0x5eb2, 0x49c2,{ 0xa2, 0xfb, 0xc7, 0xb2, 0x30, 0x8, 0xe2, 0x50 } };
+{ 0xf7d39b6, 0x43f, 0x4e5c,{ 0x8d, 0x5a, 0xa5, 0x3f, 0x42, 0xb6, 0xf, 0xcc } };
+
 
 
 class uielem_wah : public CDialogImpl<uielem_wah>, public ui_element_instance {
@@ -569,3 +572,5 @@ static void RunConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_preset
 }
 
 static dsp_factory_t<dsp_wahwah> g_dsp_wahwah_factory;
+
+}
