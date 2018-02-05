@@ -6,6 +6,7 @@
 #include "dsp_guids.h"
 
 #include <vector>
+namespace {
 
 const float BASE_DELAY_SEC = 0.002; // 2 ms
 const float VIBRATO_FREQUENCY_DEFAULT_HZ = 2;
@@ -318,19 +319,16 @@ static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_
 	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
 }
 
-// {C2638D9D-D94C-42EF-9C0F-7A133358546E}
-static const GUID guid_cfg_placement =
-{ 0xc2638d9d, 0xd94c, 0x42ef,{ 0x9c, 0xf, 0x7a, 0x13, 0x33, 0x58, 0x54, 0x6e } };
-
-
-static cfg_window_placement cfg_placement(guid_cfg_placement);
+// {1DC17CA0-0023-4266-AD59-691D566AC291}
+static const GUID guid_choruselem =
+{ 0x715a5d0c, 0x5eb2, 0x49c2,{ 0xa2, 0xfb, 0xc7, 0xb2, 0x30, 0x8, 0xe2, 0x50 } };
 
 
 
-class CMyDSPVibratoWindow : public CDialogImpl<CMyDSPVibratoWindow>
-{
+
+class uielem_vibrato : public CDialogImpl<uielem_vibrato>, public ui_element_instance {
 public:
-	CMyDSPVibratoWindow() {
+	uielem_vibrato(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
 		freq = 5.0;
 		depth = 0.5;
 		echo_enabled = true;
@@ -345,14 +343,59 @@ public:
 		depthmin = 0,
 		depthmax = 100,
 	};
-	BEGIN_MSG_MAP(CMyDSPVibratoWindow)
+	BEGIN_MSG_MAP(uielem_vibrato)
 		MSG_WM_INITDIALOG(OnInitDialog)
-		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_VIBRATOENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
-		MSG_WM_DESTROY(OnDestroy)
 	END_MSG_MAP()
+
+
+
+	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+	HWND get_wnd() { return m_hWnd; }
+	void set_configuration(ui_element_config::ptr config) {
+		shit = parseConfig(config);
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+		m_callback->on_min_max_info_change();
+	}
+	ui_element_config::ptr get_configuration() { return makeConfig(); }
+	static GUID g_get_guid() {
+		return guid_choruselem;
+	}
+	static void g_get_name(pfc::string_base & out) { out = "Vibrato"; }
+	static ui_element_config::ptr g_get_default_configuration() {
+		return makeConfig(true);
+	}
+	static const char * g_get_description() { return "Modifies the 'Vibrato' DSP effect."; }
+	static GUID g_get_subclass() {
+		return ui_element_subclass_dsp;
+	}
+
+	ui_element_min_max_info get_min_max_info() {
+		ui_element_min_max_info ret;
+
+		// Note that we play nicely with separate horizontal & vertical DPI.
+		// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+		CSize DPI = QueryScreenDPIEx(*this);
+
+		if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+			DPI = CSize(96, 96);
+		}
+
+
+		ret.m_min_width = MulDiv(480, DPI.cx, 96);
+		ret.m_min_height = MulDiv(300, DPI.cy, 96);
+		ret.m_max_width = MulDiv(480, DPI.cx, 96);
+		ret.m_max_height = MulDiv(300, DPI.cy, 96);
+
+		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+		ret.adjustForWindow(*this);
+
+		return ret;
+	}
+
 private:
 	void SetEchoEnabled(bool state) { m_buttonEchoEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 	bool IsEchoEnabled() { return m_buttonEchoEnabled == NULL || m_buttonEchoEnabled.GetCheck() == BST_CHECKED; }
@@ -464,9 +507,6 @@ private:
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 
-		modeless_dialog_manager::g_add(m_hWnd);
-		cfg_placement.on_window_creation(m_hWnd);
-
 		slider_freq = GetDlgItem(IDC_VIBRATOFREQ1);
 		slider_freq.SetRange(FreqMin, FreqMax);
 		slider_depth = GetDlgItem(IDC_VIBRATODEPTH1);
@@ -480,17 +520,6 @@ private:
 		return TRUE;
 	}
 
-
-	void OnDestroy()
-	{
-		modeless_dialog_manager::g_remove(m_hWnd);
-		cfg_placement.on_window_destruction(m_hWnd);
-	}
-
-	void OnButton(UINT, int id, CWindow)
-	{
-		DestroyWindow();
-	}
 
 	void RefreshLabel(float freq, float depth)
 	{
@@ -510,23 +539,53 @@ private:
 	CTrackBarCtrl slider_freq, slider_depth;
 	CButton m_buttonEchoEnabled;
 	bool m_ownEchoUpdate;
+
+	static uint32_t parseConfig(ui_element_config::ptr cfg) {
+		::ui_element_config_parser in(cfg);
+		try {
+			::ui_element_config_parser in(cfg);
+			uint32_t flags; in >> flags;
+			return flags;
+		}
+		catch (exception_io_data) {
+			// If we got here, someone's feeding us nonsense, fall back to defaults
+			return 1;
+		}
+
+	}
+	static ui_element_config::ptr makeConfig(bool init = false) {
+		ui_element_config_builder out;
+
+		if (init)
+		{
+			uint32_t crap = 1;
+			out << crap;
+		}
+		else
+		{
+			uint32_t crap = 2;
+			out << crap;
+		}
+		return out.finish(g_get_guid());
+	}
+	uint32_t shit;
+protected:
+	const ui_element_instance_callback::ptr m_callback;
 };
 
-static CWindow g_pitchdlg;
-void VibratoMainMenuWindow()
-{
-	if (!core_api::assert_main_thread()) return;
-
-	if (!g_pitchdlg.IsWindow())
+class myElem_t : public  ui_element_impl_withpopup< uielem_vibrato > {
+	bool get_element_group(pfc::string_base & p_out)
 	{
-		CMyDSPVibratoWindow  * dlg = new  CMyDSPVibratoWindow();
-		g_pitchdlg = dlg->Create(core_api::get_main_window());
+		p_out = "Effect DSP";
+		return true;
+	}
 
+	bool get_menu_command_description(pfc::string_base & out) {
+		out = "Opens a window for pitch modulation control.";
+		return true;
 	}
-	if (g_pitchdlg.IsWindow())
-	{
-		g_pitchdlg.ShowWindow(SW_SHOW);
-		::SetForegroundWindow(g_pitchdlg);
-	}
+
+};
+static service_factory_single_t<myElem_t> g_myElemFactory;
+
 }
-

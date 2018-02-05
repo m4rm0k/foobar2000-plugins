@@ -5,6 +5,8 @@
 #include "resource.h"
 #include "dsp_guids.h"
 
+namespace {
+
 #define CHORUS_MAX_DELAY 4096
 #define CHORUS_DELAY_MASK (CHORUS_MAX_DELAY - 1)
 #define	MODF(n,i,f) ((i) = (int)(n), (f) = (n) - (double)(i))
@@ -313,20 +315,9 @@ static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_
 
 static dsp_factory_t<dsp_chorus> g_dsp_chorus_factory;
 
-// {C2638D9D-D94C-42EF-9C0F-7A133358546E}
-static const GUID guid_cfg_placement =
-{ 0xb16dc48d, 0x62a6, 0x44cf,{ 0x82, 0x5e, 0x40, 0x32, 0x42, 0x21, 0xe6, 0xaa } };
-
-
-
-static cfg_window_placement cfg_placement(guid_cfg_placement);
-
 // {1DC17CA0-0023-4266-AD59-691D566AC291}
 static const GUID guid_choruselem
 { 0x634933f1, 0xbdb6, 0x4d4c,{ 0x8a, 0x68, 0x28, 0xb9, 0xd, 0xc0, 0xfe, 0x3 } };
-
-
-
 
 class uielem_chorus : public CDialogImpl<uielem_chorus>, public ui_element_instance {
 public:
@@ -590,9 +581,8 @@ private:
 protected:
 	const ui_element_instance_callback::ptr m_callback;
 };
-//static service_factory_single_t< ui_element_impl_withpopup< uielem_chorus > > g_CDialogUIElem_factory;
 
-class myElem_t : public  ui_element_impl_withpopup< uielem_chorus > {
+class myElem_t2 : public  ui_element_impl_withpopup< uielem_chorus > {
 	bool get_element_group(pfc::string_base & p_out)
 	{
 		p_out = "Effect DSP";
@@ -605,7 +595,7 @@ class myElem_t : public  ui_element_impl_withpopup< uielem_chorus > {
 	}
 
 };
-static service_factory_single_t<myElem_t> g_myElemFactory;
+static service_factory_single_t<myElem_t2> g_myElemFactory;
 
-
+}
 

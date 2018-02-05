@@ -5,8 +5,10 @@
 #include "resource.h"
 #include "freeverb.h"
 #include "dsp_guids.h"
+
+namespace {
 static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
-class dsp_reverb : public dsp_impl_base
+class dsp_freeverb : public dsp_impl_base
 {
 	int m_rate, m_ch, m_ch_mask;
 	float drytime;
@@ -18,7 +20,7 @@ class dsp_reverb : public dsp_impl_base
 	pfc::array_t<revmodel> m_buffers;
 	public:
 
-	dsp_reverb( dsp_preset const & in ) : drytime(0.43),wettime (0.57),dampness (0.45),roomwidth(0.56),roomsize (0.56), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
+	dsp_freeverb( dsp_preset const & in ) : drytime(0.43),wettime (0.57),dampness (0.45),roomwidth(0.56),roomsize (0.56), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
 	{
 		enabled = true;
 		parse_preset( drytime, wettime,dampness,roomwidth,roomsize,enabled, in );
@@ -117,18 +119,15 @@ class dsp_reverb : public dsp_impl_base
 	}
 };
 
-static const GUID guid_cfg_placement =
-{ 0x240b5f4c, 0x7fd0, 0x41c1,{ 0xa0, 0x24, 0x58, 0x43, 0x59, 0x6a, 0x90, 0xb8 } };
+// {1DC17CA0-0023-4266-AD59-691D566AC291}
+static const GUID guid_choruselem =
+{ 0xf875c614, 0x439f, 0x4c53,{ 0xb2, 0xef, 0xa6, 0x6e, 0x17, 0x4b, 0xf0, 0x23 } };
 
 
-
-static cfg_window_placement cfg_placement(guid_cfg_placement);
-
-class CMyDSPReverbWindow : public CDialogImpl<CMyDSPReverbWindow>
-{
+class uielem_freeverb : public CDialogImpl<uielem_freeverb>, public ui_element_instance {
 public:
-	CMyDSPReverbWindow() {
-		drytime = 0.43; wettime = 0.57; dampness = 0.45; 
+	uielem_freeverb(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+		drytime = 0.43; wettime = 0.57; dampness = 0.45;
 		roomwidth = 0.56; roomsize = 0.56; reverb_enabled = true;
 
 	}
@@ -152,14 +151,59 @@ public:
 		roomsizetotal = 100
 	};
 
-	BEGIN_MSG_MAP(CMyDSPReverbWindow)
+	BEGIN_MSG_MAP(uielem_freeverb)
 		MSG_WM_INITDIALOG(OnInitDialog)
-		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_FREEVERBENABLE, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
-		MSG_WM_DESTROY(OnDestroy)
 	END_MSG_MAP()
+
+
+
+	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+	HWND get_wnd() { return m_hWnd; }
+	void set_configuration(ui_element_config::ptr config) {
+		shit = parseConfig(config);
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+		m_callback->on_min_max_info_change();
+	}
+	ui_element_config::ptr get_configuration() { return makeConfig(); }
+	static GUID g_get_guid() {
+		return guid_choruselem;
+	}
+	static void g_get_name(pfc::string_base & out) { out = "Reverb (Freeverb)"; }
+	static ui_element_config::ptr g_get_default_configuration() {
+		return makeConfig(true);
+	}
+	static const char * g_get_description() { return "Modifies the 'Freeverb' reverberation DSP effect."; }
+	static GUID g_get_subclass() {
+		return ui_element_subclass_dsp;
+	}
+
+	ui_element_min_max_info get_min_max_info() {
+		ui_element_min_max_info ret;
+
+		// Note that we play nicely with separate horizontal & vertical DPI.
+		// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+		CSize DPI = QueryScreenDPIEx(*this);
+
+		if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+			DPI = CSize(96, 96);
+		}
+
+
+		ret.m_min_width = MulDiv(480, DPI.cx, 96);
+		ret.m_min_height = MulDiv(300, DPI.cy, 96);
+		ret.m_max_width = MulDiv(480, DPI.cx, 96);
+		ret.m_max_height = MulDiv(300, DPI.cy, 96);
+
+		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+		ret.adjustForWindow(*this);
+
+		return ret;
+	}
+
 private:
 	void SetReverbEnabled(bool state) { m_buttonReverbEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 	bool IsReverbEnabled() { return m_buttonReverbEnabled == NULL || m_buttonReverbEnabled.GetCheck() == BST_CHECKED; }
@@ -169,9 +213,9 @@ private:
 	}
 
 
-	void ReverbEnable(float  drytime, float wettime, float dampness, float roomwidth, float roomsize,bool reverb_enabled) {
+	void ReverbEnable(float  drytime, float wettime, float dampness, float roomwidth, float roomsize, bool reverb_enabled) {
 		dsp_preset_impl preset;
-		dsp_reverb::make_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
+		dsp_freeverb::make_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
 		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 	}
 
@@ -180,7 +224,7 @@ private:
 		if (IsReverbEnabled()) {
 			GetConfig();
 			dsp_preset_impl preset;
-			dsp_reverb::make_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
+			dsp_freeverb::make_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
 			//yes change api;
 			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 		}
@@ -228,7 +272,7 @@ private:
 		dsp_preset_impl preset;
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_freeverb, preset)) {
 			SetReverbEnabled(true);
-			dsp_reverb::parse_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
+			dsp_freeverb::parse_preset(drytime, wettime, dampness, roomwidth, roomsize, reverb_enabled, preset);
 			SetReverbEnabled(reverb_enabled);
 			SetConfig();
 		}
@@ -273,9 +317,6 @@ private:
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
-
-		modeless_dialog_manager::g_add(m_hWnd);
-		cfg_placement.on_window_creation(m_hWnd);
 		slider_drytime = GetDlgItem(IDC_DRYTIME1);
 		slider_drytime.SetRange(0, drytimetotal);
 		slider_wettime = GetDlgItem(IDC_WETTIME1);
@@ -292,18 +333,6 @@ private:
 
 		ApplySettings();
 		return TRUE;
-	}
-
-
-	void OnDestroy()
-	{
-		modeless_dialog_manager::g_remove(m_hWnd);
-		cfg_placement.on_window_destruction(m_hWnd);
-	}
-
-	void OnButton(UINT, int id, CWindow)
-	{
-		DestroyWindow();
 	}
 
 	void RefreshLabel(float  drytime, float wettime, float dampness, float roomwidth, float roomsize)
@@ -335,25 +364,54 @@ private:
 	CTrackBarCtrl slider_drytime, slider_wettime, slider_dampness, slider_roomwidth, slider_roomsize;
 	CButton m_buttonReverbEnabled;
 	bool m_ownReverbUpdate;
+
+	static uint32_t parseConfig(ui_element_config::ptr cfg) {
+		::ui_element_config_parser in(cfg);
+		try {
+			::ui_element_config_parser in(cfg);
+			uint32_t flags; in >> flags;
+			return flags;
+		}
+		catch (exception_io_data) {
+			// If we got here, someone's feeding us nonsense, fall back to defaults
+			return 1;
+		}
+
+	}
+	static ui_element_config::ptr makeConfig(bool init = false) {
+		ui_element_config_builder out;
+
+		if (init)
+		{
+			uint32_t crap = 1;
+			out << crap;
+		}
+		else
+		{
+			uint32_t crap = 2;
+			out << crap;
+		}
+		return out.finish(g_get_guid());
+	}
+	uint32_t shit;
+protected:
+	const ui_element_instance_callback::ptr m_callback;
 };
 
-static CWindow g_pitchdlg;
-void ReverbMainMenuWindow()
-{
-	if (!core_api::assert_main_thread()) return;
-
-	if (!g_pitchdlg.IsWindow())
+class myElem_t : public  ui_element_impl_withpopup< uielem_freeverb > {
+	bool get_element_group(pfc::string_base & p_out)
 	{
-		CMyDSPReverbWindow  * dlg = new  CMyDSPReverbWindow();
-		g_pitchdlg = dlg->Create(core_api::get_main_window());
+		p_out = "Effect DSP";
+		return true;
+	}
 
+	bool get_menu_command_description(pfc::string_base & out) {
+		out = "Opens a window for reverberation effects using the 'Freeverb' algorithm.";
+		return true;
 	}
-	if (g_pitchdlg.IsWindow())
-	{
-		g_pitchdlg.ShowWindow(SW_SHOW);
-		::SetForegroundWindow(g_pitchdlg);
-	}
-}
+
+};
+static service_factory_single_t<myElem_t> g_myElemFactory;
 
 class CMyDSPPopupReverb : public CDialogImpl<CMyDSPPopupReverb>
 {
@@ -397,7 +455,7 @@ private:
 		dsp_preset_impl preset2;
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_freeverb, preset2)) {
 			bool enabled;
-			dsp_reverb::parse_preset(drytime, wettime, dampness, roomwidth, roomsize, enabled, m_initData);
+			dsp_freeverb::parse_preset(drytime, wettime, dampness, roomwidth, roomsize, enabled, m_initData);
 
 			slider_drytime.SetPos((double)(100 * drytime));
 			slider_wettime.SetPos((double)(100 * wettime));
@@ -424,7 +482,7 @@ private:
 
 		{
 			bool enabled;
-			dsp_reverb::parse_preset(drytime,wettime,dampness,roomwidth,roomsize,enabled, m_initData);
+			dsp_freeverb::parse_preset(drytime,wettime,dampness,roomwidth,roomsize,enabled, m_initData);
 
 			slider_drytime.SetPos( (double)(100*drytime));
 			slider_wettime.SetPos( (double)(100*wettime));
@@ -453,7 +511,7 @@ private:
 		if (LOWORD(nSBCode) != SB_THUMBTRACK)
 		{
 			dsp_preset_impl preset;
-			dsp_reverb::make_preset(drytime,wettime,dampness,roomwidth,roomsize,true, preset );
+			dsp_freeverb::make_preset(drytime,wettime,dampness,roomwidth,roomsize,true, preset );
 			m_callback.on_preset_changed( preset );
 		}
 		RefreshLabel( drytime,wettime, dampness, roomwidth,roomsize);
@@ -493,4 +551,6 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
 }
 
-static dsp_factory_t<dsp_reverb> g_dsp_reverb_factory;
+static dsp_factory_t<dsp_freeverb> g_dsp_reverb_factory;
+
+}
