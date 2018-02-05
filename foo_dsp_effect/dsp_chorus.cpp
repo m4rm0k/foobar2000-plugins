@@ -321,16 +321,21 @@ static const GUID guid_cfg_placement =
 
 static cfg_window_placement cfg_placement(guid_cfg_placement);
 
-class CMyDSPChorusWindow : public CDialogImpl<CMyDSPChorusWindow>
-{
+// {1DC17CA0-0023-4266-AD59-691D566AC291}
+static const GUID guid_choruselem
+{ 0x634933f1, 0xbdb6, 0x4d4c,{ 0x8a, 0x68, 0x28, 0xb9, 0xd, 0xc0, 0xfe, 0x3 } };
+
+
+
+
+class uielem_chorus : public CDialogImpl<uielem_chorus>, public ui_element_instance {
 public:
-	CMyDSPChorusWindow() {
+	uielem_chorus(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
 		delay_ms = 25.0;
 		depth_ms = 1.0;
 		lfo_freq = 0.8;
 		drywet = 1.;
 		echo_enabled = true;
-
 	}
 	enum { IDD = IDD_CHORUS1 };
 	enum
@@ -341,14 +346,61 @@ public:
 		depthmin = 0,
 		depthmax = 100,
 	};
-	BEGIN_MSG_MAP(CMyDSPChorusWindow)
+private:
+
+	BEGIN_MSG_MAP_EX(uielem_chorus)
 		MSG_WM_INITDIALOG(OnInitDialog)
-		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
-		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_CHORUSENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
-		MSG_WM_DESTROY(OnDestroy)
-	END_MSG_MAP()
+		END_MSG_MAP()
+
+
+
+	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+	HWND get_wnd() { return m_hWnd; }
+	void set_configuration(ui_element_config::ptr config) {
+		shit = parseConfig(config);
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+		m_callback->on_min_max_info_change();
+	}
+	ui_element_config::ptr get_configuration() { return makeConfig(); }
+	static GUID g_get_guid() {
+		return guid_choruselem;
+	}
+	static void g_get_name(pfc::string_base & out) { out = "Chorus"; }
+	static ui_element_config::ptr g_get_default_configuration() {
+		return makeConfig(true);
+	}
+	static const char * g_get_description() { return "Modifies the 'Chorus' DSP effect."; }
+	static GUID g_get_subclass() {
+		return ui_element_subclass_dsp;
+	}
+
+	ui_element_min_max_info get_min_max_info() {
+		ui_element_min_max_info ret;
+
+		// Note that we play nicely with separate horizontal & vertical DPI.
+		// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+		CSize DPI = QueryScreenDPIEx(*this);
+
+		if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+			DPI = CSize(96, 96);
+		}
+
+
+		ret.m_min_width = MulDiv(480, DPI.cx, 96);
+		ret.m_min_height = MulDiv(300, DPI.cy, 96);
+		ret.m_max_width = MulDiv(480, DPI.cx, 96);
+		ret.m_max_height = MulDiv(300, DPI.cy, 96);
+
+		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+		ret.adjustForWindow(*this);
+
+		return ret;
+	}
+
 private:
 	void SetEchoEnabled(bool state) { m_buttonEchoEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 	bool IsEchoEnabled() { return m_buttonEchoEnabled == NULL || m_buttonEchoEnabled.GetCheck() == BST_CHECKED; }
@@ -360,7 +412,7 @@ private:
 
 	void EchoEnable(float delay_ms, float depth_ms, float lfo_freq, float drywet, bool echo_enabled) {
 		dsp_preset_impl preset;
-		dsp_chorus::make_preset(delay_ms,depth_ms,lfo_freq,drywet, echo_enabled, preset);
+		dsp_chorus::make_preset(delay_ms, depth_ms, lfo_freq, drywet, echo_enabled, preset);
 		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 	}
 
@@ -460,12 +512,36 @@ private:
 
 	}
 
-	BOOL OnInitDialog(CWindow, LPARAM)
-	{
+	static uint32_t parseConfig(ui_element_config::ptr cfg) {
+		::ui_element_config_parser in(cfg);
+		try {
+			::ui_element_config_parser in(cfg);
+			uint32_t flags; in >> flags;
+			return flags;
+		}
+		catch (exception_io_data) {
+			// If we got here, someone's feeding us nonsense, fall back to defaults
+			return 1;
+		}
 
-		modeless_dialog_manager::g_add(m_hWnd);
-		cfg_placement.on_window_creation(m_hWnd);
+	}
+	static ui_element_config::ptr makeConfig(bool init = false) {
+		ui_element_config_builder out;
 
+		if (init)
+		{
+			uint32_t crap = 1;
+			out << crap;
+		}
+		else
+		{
+			uint32_t crap = 2;
+			out << crap;
+		}
+		return out.finish(g_get_guid());
+	}
+
+	BOOL OnInitDialog(CWindow, LPARAM) {
 		slider_delayms = GetDlgItem(IDC_CHORUSDELAYMS1);
 		slider_delayms.SetRange(FreqMin, FreqMax);
 		slider_depthms = GetDlgItem(IDC_CHORUSDEPTHMS1);
@@ -480,20 +556,11 @@ private:
 		m_ownEchoUpdate = false;
 
 		ApplySettings();
-		return TRUE;
+		return FALSE;
 	}
 
 
-	void OnDestroy()
-	{
-		modeless_dialog_manager::g_remove(m_hWnd);
-		cfg_placement.on_window_destruction(m_hWnd);
-	}
-
-	void OnButton(UINT, int id, CWindow)
-	{
-		DestroyWindow();
-	}
+	uint32_t shit;
 
 	void RefreshLabel(float delay_ms, float depth_ms, float lfo_freq, float drywet)
 	{
@@ -520,24 +587,25 @@ private:
 	CTrackBarCtrl slider_depthms, slider_delayms, slider_lfofreq, slider_drywet;
 	CButton m_buttonEchoEnabled;
 	bool m_ownEchoUpdate;
+protected:
+	const ui_element_instance_callback::ptr m_callback;
 };
+//static service_factory_single_t< ui_element_impl_withpopup< uielem_chorus > > g_CDialogUIElem_factory;
 
-static CWindow g_pitchdlg;
-void ChorusMainMenuWindow()
-{
-	if (!core_api::assert_main_thread()) return;
-
-	if (!g_pitchdlg.IsWindow())
+class myElem_t : public  ui_element_impl_withpopup< uielem_chorus > {
+	bool get_element_group(pfc::string_base & p_out)
 	{
-		CMyDSPChorusWindow  * dlg = new  CMyDSPChorusWindow();
-		g_pitchdlg = dlg->Create(core_api::get_main_window());
+		p_out = "Effect DSP";
+		return true;
+	}
 
+	bool get_menu_command_description(pfc::string_base & out) {
+		out = "Opens a window for chorus effects.";
+		return true;
 	}
-	if (g_pitchdlg.IsWindow())
-	{
-		g_pitchdlg.ShowWindow(SW_SHOW);
-		::SetForegroundWindow(g_pitchdlg);
-	}
-}
+
+};
+static service_factory_single_t<myElem_t> g_myElemFactory;
+
 
 

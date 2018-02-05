@@ -13,6 +13,7 @@
 #define IDD_TEMPO                       108
 #define IDD_NORCH                       112
 #define IDD_UI_ELEMENT                  124
+#define IDD_PITCHTEMPO_ELEMENT          124
 #define IDC_SLIDER_MS                   1001
 #define IDC_SLIDER_LABEL_MS             1002
 #define IDC_SLIDER_AMP                  1003
@@ -64,7 +65,6 @@
 #define IDD_RATE                        1046
 #define IDC_RELEASETIME                 1047
 #define IDC_DYNAMICSRELEASETIME         1048
-#define IDD_PITCHTEMPO                  1048
 #define IDC_IIRQ                        1049
 #define IDD_DYNAMICS1                   1049
 #define IDC_FASTRATIO                   1050
@@ -107,20 +107,9 @@
 #define IDC_PITCHENABLE2                1072
 #define IDC_IIRTYPELABEL                1072
 #define IDC_TEMPOINFO                   1073
-#define IDC_PITCHENABLED                1073
 #define IDC_RATEINFO                    1074
-#define IDC_TEMPOINFO2                  1074
 #define IDC_RATE                        1075
-#define IDC_RATEINFO2                   1075
-#define IDC_RATE2                       1076
 #define IDC_COMBO2                      1077
-#define IDC_TEMPOENABLED                1077
-#define IDC_RATENABLED                  1078
-#define IDC_PITCH2                      1079
-#define IDC_PITCHINFO2                  1080
-#define IDC_PITCHTYPE2                  1081
-#define IDC_TEMPO2                      1082
-#define IDC_TEMPOTYPE2                  1083
 #define IDC_DYNAMICSPEAKLIMIT1          1084
 #define IDC_DYNAMICSRELEASETIME1        1085
 #define IDC_DYNAMICSDISPLAY_RELEASE1    1086
