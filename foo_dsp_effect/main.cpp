@@ -11,6 +11,8 @@ static pfc::string_formatter g_get_component_about()
 	about << "Portions by Jon Watte, Jezar Wakefield, Chris Snowhill.\n";
 	about << "Using SoundTouch library version "<< SOUNDTOUCH_VERSION << "\n";
 	about << "SoundTouch (c) Olli Parviainen\n";
+	about << "\n";
+	about << "License: https://goo.gl/5BhxXc";
 	return about;
 }
 
