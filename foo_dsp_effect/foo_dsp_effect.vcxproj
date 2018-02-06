@@ -92,7 +92,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;FOO_DSP_TUTORIAL_EXPORTS;RANDOM_PREFIX=mylib;EXPORT=;OUTSIDE_SPEEX;USE_MULTICH_ALWAYS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
@@ -121,7 +121,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dsp_chorus.cpp" />
-    <ClCompile Include="dsp_dynamics.cpp" />
     <ClCompile Include="dsp_echo.cpp" />
     <ClCompile Include="dsp_freeverb.cpp" />
     <ClCompile Include="dsp_iir.cpp" />
