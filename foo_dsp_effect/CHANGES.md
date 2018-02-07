@@ -5,3 +5,4 @@
 * Removed dynamics compressor DSP, moved to seperate DSP component.
 * Wrapped all classes in anonymous namespaces.
 * Changed to a dynamic MSVC runtime.
+* Flush samples before changing parameters with pitch/tempo/rate DSPs. 

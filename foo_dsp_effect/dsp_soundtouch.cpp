@@ -13,7 +13,6 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 #define BUFFER_SIZE 2048
-#define BUFFER_SIZE_RB 4096
 
 class dsp_pitch : public dsp_impl_base
 {
@@ -30,44 +29,47 @@ class dsp_pitch : public dsp_impl_base
 	bool st_enabled;
 	int pitch_shifter;
 private:
-	void insert_chunks_rubber()
+
+	void flushchunks()
 	{
-		while (1)
+		if (p_soundtouch)
 		{
-			t_size samples = rubber->available();
-			if (samples <= 0)return;
-			samples = rubber->retrieve(m_scratch, samples);
-			if (samples > 0)
+			uint samples;
+			soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
+			do
 			{
-				float *data = samplebuf.get_ptr();
-				for (int c = 0; c < m_ch; ++c) {
-					int j = 0;
-					while (j < samples) {
-						data[j * m_ch + c] = m_scratch[c][j];
-						++j;
-					}
+				samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
+				if (samples > 0)
+				{
+					audio_chunk * chunk = insert_chunk(samples * m_ch);
+					chunk->set_channels(m_ch, m_ch_mask);
+					chunk->set_data_32(src, samples, m_ch, m_rate);
 				}
-				audio_chunk * chunk = insert_chunk(samples*m_ch);
-				chunk->set_data(data, samples, m_ch, m_rate);
+			} while (samples != 0);
+		}
+		if (rubber)
+		{
+			while (1)
+			{
+				t_size samples = rubber->available();
+				if (samples <= 0)return;
+				samples = rubber->retrieve(m_scratch, samples);
+				if (samples > 0)
+				{
+					float *data = samplebuf.get_ptr();
+					for (int c = 0; c < m_ch; ++c) {
+						int j = 0;
+						while (j < samples) {
+							data[j * m_ch + c] = m_scratch[c][j];
+							++j;
+						}
+					}
+					audio_chunk * chunk = insert_chunk(samples*m_ch);
+					chunk->set_data(data, samples, m_ch, m_rate);
+				}
 			}
 		}
-	}
-
-
-	void insert_chunks_st()
-	{
-		uint samples;
-		soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
-		do
-		{
-			samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
-			if (samples > 0)
-			{
-				audio_chunk * chunk = insert_chunk(samples * m_ch);
-				chunk->set_channels(m_ch, m_ch_mask);
-				chunk->set_data_32(src, samples, m_ch, m_rate);
-			}
-		} while (samples != 0);
+		
 	}
 
 public:
@@ -85,7 +87,7 @@ public:
 	~dsp_pitch(){
 		if (p_soundtouch)
 		{
-			insert_chunks_st();
+			flushchunks();
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
@@ -93,7 +95,7 @@ public:
 
 		if (rubber)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 			delete rubber;
 			for (int c = 0; c < m_ch; ++c)
 			{
@@ -125,7 +127,7 @@ public:
 	virtual void on_endoftrack(abort_callback & p_abort) {
 		if (rubber&& pitch_shifter == 1)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 	}
 
@@ -133,7 +135,7 @@ public:
         //same as flush, only at end of playback
 		if (p_soundtouch && st_enabled)
 		{
-				insert_chunks_st();
+			flushchunks();
 				if (buffered)
 				{
 					sample_buffer.read(samplebuf.get_ptr(),buffered*m_ch);
@@ -141,12 +143,12 @@ public:
 					buffered = 0;
 				}
 				p_soundtouch->flush();
-				insert_chunks_st();	
+				flushchunks();
 		}
 
 		if (rubber&& st_enabled)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 	}
 
@@ -163,6 +165,7 @@ public:
 
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
+		
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
@@ -173,7 +176,7 @@ public:
 			{
 				
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
-				
+				flushchunks();
 				if (rubber) delete rubber;
 				if (plugbuf) {
 					for (int c = 0; c < m_ch; ++c) delete[] plugbuf[c];
@@ -198,7 +201,7 @@ public:
 
 			if (pitch_shifter == 0)
 			{
-
+				flushchunks();
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
 				
@@ -243,7 +246,7 @@ public:
 						}
 					}
 					rubber->process(plugbuf, toCauseProcessing, false);
-					insert_chunks_rubber();
+					flushchunks();
 					buffered = 0;
 				}
 			}
@@ -262,7 +265,7 @@ public:
 				{
 					sample_buffer.read(samplebuf.get_ptr(), buffered*m_ch);
 					p_soundtouch->putSamples(samplebuf.get_ptr(), buffered);
-					insert_chunks_st();
+					flushchunks();
 					buffered = 0;
 				}
 			}
@@ -278,7 +281,7 @@ public:
 		}
 		if (rubber && pitch_shifter == 1)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 		m_rate = 0;
 		m_ch = 0;
@@ -349,9 +352,27 @@ class dsp_tempo : public dsp_impl_base
 	bool st_enabled;
 	int pitch_shifter;
 private:
-	void insert_chunks_rubber()
-	{	
-			while(1)
+	
+	void flushchunks()
+	{
+		if (p_soundtouch)
+		{
+			uint samples;
+			soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
+			do
+			{
+				samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
+				if (samples > 0)
+				{
+					audio_chunk * chunk = insert_chunk(samples * m_ch);
+					chunk->set_channels(m_ch, m_ch_mask);
+					chunk->set_data_32(src, samples, m_ch, m_rate);
+				}
+			} while (samples != 0);
+		}
+		if (rubber)
+		{
+			while (1)
 			{
 				t_size samples = rubber->available();
 				if (samples <= 0)return;
@@ -370,25 +391,9 @@ private:
 					chunk->set_data(data, samples, m_ch, m_rate);
 				}
 			}
+		}
+
 	}
-
-
-	void insert_chunks_st()
-	{
-		uint samples;
-		soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
-		do
-		{
-			samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
-			if (samples > 0)
-			{
-				audio_chunk * chunk = insert_chunk(samples * m_ch);
-				chunk->set_channels(m_ch, m_ch_mask);
-				chunk->set_data_32(src, samples, m_ch, m_rate);
-			}
-		} while (samples != 0);
-	}
-
 
 public:
 	dsp_tempo( dsp_preset const & in ) : pitch_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
@@ -404,7 +409,7 @@ public:
 	~dsp_tempo(){
 		if (p_soundtouch)
 		{
-			insert_chunks_st();
+			flushchunks();
 			delete p_soundtouch;
 			p_soundtouch = 0;
 		}
@@ -412,7 +417,7 @@ public:
 
 		if (rubber)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 			delete rubber;
 			for (int c = 0; c < m_ch; ++c)
 			{
@@ -445,7 +450,7 @@ public:
 	virtual void on_endoftrack(abort_callback & p_abort) {
 		if (rubber)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 	}
 
@@ -453,7 +458,7 @@ public:
 		//same as flush, only at end of playback
 		if (p_soundtouch && st_enabled)
 		{
-			insert_chunks_st();
+			flushchunks();
 			if (buffered)
 			{
 				sample_buffer.read(samplebuf.get_ptr(), buffered*m_ch);
@@ -461,12 +466,12 @@ public:
 				buffered = 0;
 			}
 			p_soundtouch->flush();
-			insert_chunks_st();
+			flushchunks();
 		}
 
 		if (rubber&& st_enabled)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 	}
 
@@ -496,7 +501,7 @@ public:
 			{
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
-				
+				flushchunks();
 				if (rubber) delete rubber;
 				if (plugbuf) {
 					for (int c = 0; c < m_ch; ++c) delete[] plugbuf[c];
@@ -521,6 +526,7 @@ public:
 
 			if (pitch_shifter == 0)
 			{
+				flushchunks();
 				sample_buffer.set_size(BUFFER_SIZE*m_ch);
 				samplebuf.set_size(BUFFER_SIZE*m_ch);
 				if (p_soundtouch) delete p_soundtouch;
@@ -565,7 +571,7 @@ public:
 						}
 					}
 					rubber->process(plugbuf, toCauseProcessing, false);
-					insert_chunks_rubber();
+					flushchunks();
 					buffered = 0;
 				}
 			}
@@ -584,7 +590,7 @@ public:
 				{
 					sample_buffer.read(samplebuf.get_ptr(), buffered*m_ch);
 					p_soundtouch->putSamples(samplebuf.get_ptr(), buffered);
-					insert_chunks_st();
+					flushchunks();
 					buffered = 0;
 				}
 			}
@@ -600,7 +606,7 @@ public:
 		}
 		if (rubber&& pitch_shifter == 1)
 		{
-			insert_chunks_rubber();
+			flushchunks();
 		}
 		m_rate = 0;
 		m_ch = 0;
@@ -667,23 +673,23 @@ class dsp_rate : public dsp_impl_base
 	unsigned buffered;
 	bool st_enabled;
 private:
-	void insert_chunks()
+	void flushchunks()
 	{
-		uint samples = p_soundtouch->numSamples();
-		if (!samples) return;
-		samplebuf.grow_size(BUFFER_SIZE * m_ch);
-		soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
-		do
+		if (p_soundtouch)
 		{
-			samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
-			if (samples > 0)
+			uint samples;
+			soundtouch::SAMPLETYPE * src = samplebuf.get_ptr();
+			do
 			{
-				audio_chunk * chunk = insert_chunk(samples * m_ch);
-				//	chunk->set_channels(m_ch,m_ch_mask);
-				chunk->set_data_32(src, samples, m_ch, m_rate);
-			}
+				samples = p_soundtouch->receiveSamples(src, BUFFER_SIZE);
+				if (samples > 0)
+				{
+					audio_chunk * chunk = insert_chunk(samples * m_ch);
+					chunk->set_channels(m_ch, m_ch_mask);
+					chunk->set_data_32(src, samples, m_ch, m_rate);
+				}
+			} while (samples != 0);
 		}
-		while (samples != 0);
 	}
 
 public:
@@ -726,7 +732,7 @@ public:
 		// We need to do the same thing as flush(), so we just call it.
 		if (p_soundtouch && st_enabled)
 		{
-			insert_chunks();
+			flushchunks();
 			if (buffered)
 			{
 				sample_buffer.read(samplebuf.get_ptr(),buffered*m_ch);
@@ -734,7 +740,7 @@ public:
 				buffered = 0;
 			}
 			p_soundtouch->flush();
-			insert_chunks();
+			flushchunks();
 		}
 	}
 
@@ -753,7 +759,7 @@ public:
 		{
 			if (p_soundtouch)
 			{
-				insert_chunks();
+				flushchunks();
 				delete p_soundtouch;
 				p_soundtouch = 0;
 			}
@@ -785,7 +791,7 @@ public:
 				sample_buffer.read(samplebuf.get_ptr(),buffered*m_ch);
 				p_soundtouch->putSamples(samplebuf.get_ptr(), buffered);
 				buffered = 0;
-				insert_chunks();
+				flushchunks();
 			}
 		}
 		return false;
@@ -795,6 +801,7 @@ public:
 		if (!st_enabled)return;
 		if (p_soundtouch){
 			p_soundtouch->clear();
+			flushchunks();
 		}
 		m_rate = 0;
 		m_ch = 0;
