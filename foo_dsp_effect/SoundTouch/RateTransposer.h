@@ -14,10 +14,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2015-07-26 14:45:48 +0000 (Sun, 26 Jul 2015) $
+// Last changed  : $Date: 2014-01-06 13:40:23 -0500 (Mon, 06 Jan 2014) $
 // File revision : $Revision: 4 $
 //
-// $Id: RateTransposer.h 225 2015-07-26 14:45:48Z oparviai $
+// $Id: RateTransposer.h 178 2014-01-06 18:40:23Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -81,14 +81,14 @@ protected:
     static ALGORITHM algorithm;
 
 public:
-    double rate;
+    float rate;
     int numChannels;
 
     TransposerBase();
     virtual ~TransposerBase();
 
     virtual int transpose(FIFOSampleBuffer &dest, FIFOSampleBuffer &src);
-    virtual void setRate(double newRate);
+    virtual void setRate(float newRate);
     virtual void setChannels(int channels);
 
     // static factory function
@@ -118,7 +118,7 @@ protected:
     /// Output sample buffer
     FIFOSampleBuffer outputBuffer;
 
-    bool bUseAAFilter;
+    BOOL bUseAAFilter;
 
 
     /// Transposes sample rate by applying anti-alias filter to prevent folding. 
@@ -151,14 +151,14 @@ public:
     AAFilter *getAAFilter();
 
     /// Enables/disables the anti-alias filter. Zero to disable, nonzero to enable
-    void enableAAFilter(bool newMode);
+    void enableAAFilter(BOOL newMode);
 
     /// Returns nonzero if anti-alias filter is enabled.
-    bool isAAFilterEnabled() const;
+    BOOL isAAFilterEnabled() const;
 
     /// Sets new target rate. Normal rate = 1.0, smaller values represent slower 
     /// rate, larger faster rates.
-    virtual void setRate(double newRate);
+    virtual void setRate(float newRate);
 
     /// Sets the number of channels, 1 = mono, 2 = stereo
     void setChannels(int channels);

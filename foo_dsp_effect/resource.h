@@ -127,7 +127,6 @@
 #define IDC_FREEVERBENABLE              1127
 #define IDC_DAMPING1                    1128
 #define IDC_WAHDEPTH1                   1129
-#define IDC_DRYTIME2                    1129
 #define IDC_WAHDEPTHINFO1               1130
 #define IDC_WAHRESONANCE1               1131
 #define IDC_WAHRESONANCEINFO1           1132
@@ -184,7 +183,6 @@
 #define IDC_PITCHINFO_UI                1184
 #define IDC_PITCH_UI                    1185
 #define IDC_PITCHENABLED_UI             1186
-#define IDC_PITCHTYPE_UI                1187
 #define IDC_TEMPOINFO_UI                1188
 #define IDC_TEMPO_UI                    1189
 #define IDC_TEMPOENABLED_UI             1190

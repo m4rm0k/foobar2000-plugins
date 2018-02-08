@@ -8,10 +8,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2015-05-18 15:25:07 +0000 (Mon, 18 May 2015) $
+// Last changed  : $Date: 2017-07-30 12:28:06 +0300 (su, 30 heinä 2017) $
 // File revision : $Revision: 3 $
 //
-// $Id: STTypes.h 215 2015-05-18 15:25:07Z oparviai $
+// $Id: STTypes.h 252 2017-07-30 09:28:06Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -38,6 +38,8 @@
 
 #ifndef STTypes_H
 #define STTypes_H
+
+#include <windows.h>
 
 typedef unsigned int    uint;
 typedef unsigned long   ulong;
@@ -143,8 +145,10 @@ namespace soundtouch
         #endif // SOUNDTOUCH_FLOAT_SAMPLES
 
         #ifdef SOUNDTOUCH_ALLOW_X86_OPTIMIZATIONS
-            // Allow MMX optimizations
-            #define SOUNDTOUCH_ALLOW_MMX   1
+            // Allow MMX optimizations (not available in X64 mode)
+            #if (!_M_X64)
+                #define SOUNDTOUCH_ALLOW_MMX   1
+            #endif
         #endif
 
     #else

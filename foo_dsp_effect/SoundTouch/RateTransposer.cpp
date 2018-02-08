@@ -10,10 +10,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2015-07-26 14:45:48 +0000 (Sun, 26 Jul 2015) $
+// Last changed  : $Date: 2014-01-06 14:19:38 -0500 (Mon, 06 Jan 2014) $
 // File revision : $Revision: 4 $
 //
-// $Id: RateTransposer.cpp 225 2015-07-26 14:45:48Z oparviai $
+// $Id: RateTransposer.cpp 181 2014-01-06 19:19:38Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -57,7 +57,7 @@ TransposerBase::ALGORITHM TransposerBase::algorithm = TransposerBase::CUBIC;
 // Constructor
 RateTransposer::RateTransposer() : FIFOProcessor(&outputBuffer)
 {
-    bUseAAFilter = true;
+    bUseAAFilter = TRUE;
 
     // Instantiates the anti-alias filter
     pAAFilter = new AAFilter(64);
@@ -75,14 +75,14 @@ RateTransposer::~RateTransposer()
 
 
 /// Enables/disables the anti-alias filter. Zero to disable, nonzero to enable
-void RateTransposer::enableAAFilter(bool newMode)
+void RateTransposer::enableAAFilter(BOOL newMode)
 {
     bUseAAFilter = newMode;
 }
 
 
 /// Returns nonzero if anti-alias filter is enabled.
-bool RateTransposer::isAAFilterEnabled() const
+BOOL RateTransposer::isAAFilterEnabled() const
 {
     return bUseAAFilter;
 }
@@ -97,20 +97,20 @@ AAFilter *RateTransposer::getAAFilter()
 
 // Sets new target iRate. Normal iRate = 1.0, smaller values represent slower 
 // iRate, larger faster iRates.
-void RateTransposer::setRate(double newRate)
+void RateTransposer::setRate(float newRate)
 {
     double fCutoff;
 
     pTransposer->setRate(newRate);
 
     // design a new anti-alias filter
-    if (newRate > 1.0) 
+    if (newRate > 1.0f) 
     {
-        fCutoff = 0.5 / newRate;
+        fCutoff = 0.5f / newRate;
     } 
     else 
     {
-        fCutoff = 0.5 * newRate;
+        fCutoff = 0.5f * newRate;
     }
     pAAFilter->setCutoffFreq(fCutoff);
 }
@@ -139,7 +139,7 @@ void RateTransposer::processSamples(const SAMPLETYPE *src, uint nSamples)
 
     // If anti-alias filter is turned off, simply transpose without applying
     // the filter
-    if (bUseAAFilter == false) 
+    if (bUseAAFilter == FALSE) 
     {
         count = pTransposer->transpose(outputBuffer, inputBuffer);
         return;
@@ -225,7 +225,7 @@ void TransposerBase::setAlgorithm(TransposerBase::ALGORITHM a)
 int TransposerBase::transpose(FIFOSampleBuffer &dest, FIFOSampleBuffer &src)
 {
     int numSrcSamples = src.numSamples();
-    int sizeDemand = (int)((double)numSrcSamples / rate) + 8;
+    int sizeDemand = (int)((float)numSrcSamples / rate) + 8;
     int numOutput;
     SAMPLETYPE *psrc = src.ptrBegin();
     SAMPLETYPE *pdest = dest.ptrEnd(sizeDemand);
@@ -270,7 +270,7 @@ void TransposerBase::setChannels(int channels)
 }
 
 
-void TransposerBase::setRate(double newRate)
+void TransposerBase::setRate(float newRate)
 {
     rate = newRate;
 }
