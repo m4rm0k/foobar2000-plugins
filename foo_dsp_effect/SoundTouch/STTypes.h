@@ -8,7 +8,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2017-07-30 12:28:06 +0300 (su, 30 heinä 2017) $
+// Last changed  : $Date: 2017-07-30 09:28:06 +0000 (Sun, 30 Jul 2017) $
 // File revision : $Revision: 3 $
 //
 // $Id: STTypes.h 252 2017-07-30 09:28:06Z oparviai $
@@ -38,8 +38,6 @@
 
 #ifndef STTypes_H
 #define STTypes_H
-
-#include <windows.h>
 
 typedef unsigned int    uint;
 typedef unsigned long   ulong;

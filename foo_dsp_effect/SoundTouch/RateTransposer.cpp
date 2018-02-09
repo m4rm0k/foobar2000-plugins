@@ -10,10 +10,10 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2014-01-06 14:19:38 -0500 (Mon, 06 Jan 2014) $
+// Last changed  : $Date: 2017-09-07 17:04:02 +0000 (Thu, 07 Sep 2017) $
 // File revision : $Revision: 4 $
 //
-// $Id: RateTransposer.cpp 181 2014-01-06 19:19:38Z oparviai $
+// $Id: RateTransposer.cpp 258 2017-09-07 17:04:02Z oparviai $
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -57,7 +57,13 @@ TransposerBase::ALGORITHM TransposerBase::algorithm = TransposerBase::CUBIC;
 // Constructor
 RateTransposer::RateTransposer() : FIFOProcessor(&outputBuffer)
 {
-    bUseAAFilter = TRUE;
+    bUseAAFilter = 
+#ifndef SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER
+        true;
+#else
+        // Disable Anti-alias filter if desirable to avoid click at rate change zero value crossover
+        false;
+#endif
 
     // Instantiates the anti-alias filter
     pAAFilter = new AAFilter(64);
@@ -75,14 +81,17 @@ RateTransposer::~RateTransposer()
 
 
 /// Enables/disables the anti-alias filter. Zero to disable, nonzero to enable
-void RateTransposer::enableAAFilter(BOOL newMode)
+void RateTransposer::enableAAFilter(bool newMode)
 {
+#ifndef SOUNDTOUCH_PREVENT_CLICK_AT_RATE_CROSSOVER
+    // Disable Anti-alias filter if desirable to avoid click at rate change zero value crossover
     bUseAAFilter = newMode;
+#endif
 }
 
 
 /// Returns nonzero if anti-alias filter is enabled.
-BOOL RateTransposer::isAAFilterEnabled() const
+bool RateTransposer::isAAFilterEnabled() const
 {
     return bUseAAFilter;
 }
@@ -97,20 +106,20 @@ AAFilter *RateTransposer::getAAFilter()
 
 // Sets new target iRate. Normal iRate = 1.0, smaller values represent slower 
 // iRate, larger faster iRates.
-void RateTransposer::setRate(float newRate)
+void RateTransposer::setRate(double newRate)
 {
     double fCutoff;
 
     pTransposer->setRate(newRate);
 
     // design a new anti-alias filter
-    if (newRate > 1.0f) 
+    if (newRate > 1.0) 
     {
-        fCutoff = 0.5f / newRate;
+        fCutoff = 0.5 / newRate;
     } 
     else 
     {
-        fCutoff = 0.5f * newRate;
+        fCutoff = 0.5 * newRate;
     }
     pAAFilter->setCutoffFreq(fCutoff);
 }
@@ -139,7 +148,7 @@ void RateTransposer::processSamples(const SAMPLETYPE *src, uint nSamples)
 
     // If anti-alias filter is turned off, simply transpose without applying
     // the filter
-    if (bUseAAFilter == FALSE) 
+    if (bUseAAFilter == false) 
     {
         count = pTransposer->transpose(outputBuffer, inputBuffer);
         return;
@@ -208,6 +217,13 @@ int RateTransposer::isEmpty() const
 }
 
 
+/// Return approximate initial input-output latency
+int RateTransposer::getLatency() const
+{
+    return (bUseAAFilter) ? pAAFilter->getLength() : 0;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // TransposerBase - Base class for interpolation
@@ -225,7 +241,7 @@ void TransposerBase::setAlgorithm(TransposerBase::ALGORITHM a)
 int TransposerBase::transpose(FIFOSampleBuffer &dest, FIFOSampleBuffer &src)
 {
     int numSrcSamples = src.numSamples();
-    int sizeDemand = (int)((float)numSrcSamples / rate) + 8;
+    int sizeDemand = (int)((double)numSrcSamples / rate) + 8;
     int numOutput;
     SAMPLETYPE *psrc = src.ptrBegin();
     SAMPLETYPE *pdest = dest.ptrEnd(sizeDemand);
@@ -270,7 +286,7 @@ void TransposerBase::setChannels(int channels)
 }
 
 
-void TransposerBase::setRate(float newRate)
+void TransposerBase::setRate(double newRate)
 {
     rate = newRate;
 }

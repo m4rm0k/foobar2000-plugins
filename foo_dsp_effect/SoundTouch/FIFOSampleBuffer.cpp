@@ -15,7 +15,7 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2012-11-08 13:53:01 -0500 (Thu, 08 Nov 2012) $
+// Last changed  : $Date: 2012-11-08 18:53:01 +0000 (Thu, 08 Nov 2012) $
 // File revision : $Revision: 4 $
 //
 // $Id: FIFOSampleBuffer.cpp 160 2012-11-08 18:53:01Z oparviai $
@@ -232,15 +232,16 @@ uint FIFOSampleBuffer::receiveSamples(uint maxSamples)
 {
     if (maxSamples >= samplesInBuffer)
     {
-        uint temp = samplesInBuffer;
-        clear();
+        uint temp;
+
+        temp = samplesInBuffer;
+        samplesInBuffer = 0;
         return temp;
     }
 
     samplesInBuffer -= maxSamples;
     bufferPos += maxSamples;
-    assert(bufferPos < getCapacity());
-    
+
     return maxSamples;
 }
 

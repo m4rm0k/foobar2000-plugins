@@ -6,4 +6,5 @@
 * Wrapped all classes in anonymous namespaces.
 * Changed to a dynamic MSVC runtime.
 * Rewrote pitch/tempo/rate DSPs
-* Updated SoundTouch to version 2.0
+* Updated SoundTouch to latest Subversion version
+* Updated RubberBand to latest Mercurial version

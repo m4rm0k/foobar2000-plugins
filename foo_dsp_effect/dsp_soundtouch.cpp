@@ -499,45 +499,43 @@ public:
 	// stream characteristics, i.e. same sample rate, channel count
 	// and channel configuration.
 	virtual bool on_chunk(audio_chunk * chunk, abort_callback & p_abort) {
-		t_size sample_count = chunk->get_sample_count();
-		audio_sample * src = chunk->get_data();
+	
 
 		if (pitch_amount == 0)st_enabled = false;
 		if (!st_enabled) return true;
 
 		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
 		{
-			if (p_soundtouch)
-			{
-				delete[] buffer_;
-				delete p_soundtouch;
-			}
-
-			buffer_ = new float[BUFFER_SIZE*m_ch];
+			if (p_soundtouch)delete p_soundtouch;
+			if(buffer_)delete[] buffer_;
+		
 
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
-			if (p_soundtouch) delete p_soundtouch;
 			p_soundtouch = new SoundTouch;
 			if (!p_soundtouch) return 0;
 			p_soundtouch->setSampleRate(m_rate);
 			p_soundtouch->setChannels(m_ch);
 			p_soundtouch->setRateChange(pitch_amount);
 			st_enabled = true;
+			buffer_ = new float[BUFFER_SIZE*m_ch];
 			
 		}
-		if (!st_enabled) return true;
-		size_t out_samples_gen = BUFFER_SIZE;
-		audio_sample * current = chunk->get_data();
-		p_soundtouch->putSamples(current, sample_count);
-		while (out_samples_gen > 0)
+		if (p_soundtouch && st_enabled)
 		{
-			out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
-			if (out_samples_gen != 0)
+			t_size sample_count = chunk->get_sample_count();
+			size_t out_samples_gen = BUFFER_SIZE;
+			audio_sample * current = chunk->get_data();
+			p_soundtouch->putSamples(current, sample_count);
+			while (out_samples_gen > 0)
 			{
-				audio_chunk * chunk = insert_chunk(out_samples_gen * m_ch);
-				chunk->set_data(buffer_, out_samples_gen, m_ch, m_rate, m_ch_mask);
+				out_samples_gen = p_soundtouch->receiveSamples(buffer_,out_samples_gen);
+				if (out_samples_gen != 0)
+				{
+					audio_chunk * chunk = insert_chunk(out_samples_gen * m_ch);
+					chunk->set_data(buffer_, out_samples_gen, m_ch, m_rate, m_ch_mask);
+				}
 			}
 		}
 		return false;
@@ -555,7 +553,12 @@ public:
 	}
 
 	virtual double get_latency() {
-		return (p_soundtouch && m_rate && st_enabled) ? p_soundtouch->numSamples() / (double)m_rate : 0;
+		if (!st_enabled) return 0;
+		if (p_soundtouch)
+		{
+			return p_soundtouch->numSamples() / (double)m_rate;
+		}
+		return 0;
 	}
 
 	virtual bool need_track_change_mark() {
