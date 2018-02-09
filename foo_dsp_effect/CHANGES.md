@@ -5,6 +5,7 @@
 * Removed dynamics compressor DSP, moved to seperate DSP component.
 * Wrapped all classes in anonymous namespaces.
 * Changed to a dynamic MSVC runtime.
-* Rewrote pitch/tempo/rate DSPs
-* Updated SoundTouch to latest Subversion version
-* Updated RubberBand to latest Mercurial version
+* Rewrote pitch/tempo/rate DSPs.
+* Updated SoundTouch to latest Subversion version.
+* Updated RubberBand to latest Mercurial version.
+* Reverb coefficients are now scaled according to samplerate.

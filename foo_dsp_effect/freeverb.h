@@ -95,24 +95,16 @@ const float	initialwidth	= 1;
 const float	initialmode	= 0;
 const float	freezemode	= 0.5f;
 
-const int combtuningL1		= 1116;
-const int combtuningL2		= 1188;
-const int combtuningL3		= 1277;
-const int combtuningL4		= 1356;
-const int combtuningL5		= 1422;
-const int combtuningL6		= 1491;
-const int combtuningL7		= 1557;
-const int combtuningL8		= 1617;
-const int allpasstuningL1	= 556;
-const int allpasstuningL2	= 441;
-const int allpasstuningL3	= 341;
-const int allpasstuningL4	= 225;
+const int num_comb = 8;
+const int num_allpass = 4;
 
 
 class revmodel {
 public:
 	revmodel();
+	~revmodel();
 	void mute();
+	void init(int srate);
 	float revmodel::processsample(float in);
 	void setroomsize(float value);
 	float getroomsize();
@@ -142,19 +134,9 @@ private:
 
 	allpass	allpassL[numallpasses];
 
-	float bufcombL1[combtuningL1];
-	float bufcombL2[combtuningL2];
-	float bufcombL3[combtuningL3];
-	float bufcombL4[combtuningL4];
-	float bufcombL5[combtuningL5];
-	float bufcombL6[combtuningL6];
-	float bufcombL7[combtuningL7];
-	float bufcombL8[combtuningL8];
 
-	float bufallpassL1[allpasstuningL1];
-	float bufallpassL2[allpasstuningL2];
-	float bufallpassL3[allpasstuningL3];
-	float bufallpassL4[allpasstuningL4];
+	float **bufcomb;
+	float **bufallpass;
 };
 
 #endif

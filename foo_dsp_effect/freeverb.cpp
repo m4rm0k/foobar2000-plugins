@@ -1,4 +1,5 @@
 #include "freeverb.h"
+#include "../SDK/foobar2000.h"
 
 comb::comb() {
 	filterstore = 0;
@@ -59,22 +60,73 @@ float allpass::getfeedback() {
 
 
 revmodel::revmodel() {
-	combL[0].setbuffer(bufcombL1,combtuningL1);
-	combL[1].setbuffer(bufcombL2,combtuningL2);
-	combL[2].setbuffer(bufcombL3,combtuningL3);
-	combL[3].setbuffer(bufcombL4,combtuningL4);
-	combL[4].setbuffer(bufcombL5,combtuningL5);
-	combL[5].setbuffer(bufcombL6,combtuningL6);
-	combL[6].setbuffer(bufcombL7,combtuningL7);
-	combL[7].setbuffer(bufcombL8,combtuningL8);
-	allpassL[0].setbuffer(bufallpassL1,allpasstuningL1);
-	allpassL[1].setbuffer(bufallpassL2,allpasstuningL2);
-	allpassL[2].setbuffer(bufallpassL3,allpasstuningL3);
-	allpassL[3].setbuffer(bufallpassL4,allpasstuningL4);
-	allpassL[0].setfeedback(0.5f);
-	allpassL[1].setfeedback(0.5f);
-	allpassL[2].setfeedback(0.5f);
-	allpassL[3].setfeedback(0.5f);
+		bufcomb = NULL;
+		bufallpass = NULL;
+	
+}
+
+revmodel::~revmodel()
+{
+	if (bufcomb) {
+		for (int c = 0; c < num_comb; ++c)
+		{
+			delete[] bufcomb[c];
+			bufcomb[c] = NULL;
+		}
+		delete[] bufcomb;
+		bufcomb = NULL;
+	}
+
+	if (bufallpass) {
+		for (int c = 0; c < num_allpass; ++c)
+		{
+			delete[] bufallpass[c];
+			bufallpass[c] = NULL;
+		}
+		delete[] bufallpass;
+		bufallpass = NULL;
+	}
+}
+
+void revmodel::init(int srate)
+{
+	static const int comb_lengths[8] = { 1116,1188,1277,1356,1422,1491,1557,1617 };
+	static const int allpass_lengths[4] = { 225,341,441,556 };
+
+	double r = srate * (1 / 44100.0);
+	if (bufcomb) {
+		for (int c = 0; c < num_comb; ++c)
+		{
+			delete[] bufcomb[c];
+			bufcomb[c] = NULL;
+		}
+		delete[] bufcomb;
+		bufcomb = NULL;
+	}
+
+   bufcomb= new float *[num_comb];
+   for (int c = 0; c < num_comb; ++c)
+   {
+	   bufcomb[c] = new float[r*comb_lengths[c]];
+	   combL[c].setbuffer(bufcomb[c], r*comb_lengths[c]);
+   }
+
+   if (bufallpass) {
+	   for (int a = 0; a < num_allpass; ++a)
+	   {
+		   delete[] bufallpass[a];
+		   bufallpass[a] = NULL;
+	   }
+	   delete[] bufallpass;
+	   bufallpass = NULL;
+   }
+   bufallpass = new float *[num_allpass];
+   for (int a = 0;a< num_allpass; ++a)
+   {
+	   bufallpass[a] = new float[r*allpass_lengths[a]];
+	   allpassL[a].setbuffer(bufallpass[a], r*allpass_lengths[a]);
+	   allpassL[a].setfeedback(0.5f);
+   }
 	setwet(initialwet);
 	setroomsize(initialroom);
 	setdry(initialdry);

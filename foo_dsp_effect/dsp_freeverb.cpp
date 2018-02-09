@@ -45,6 +45,7 @@ class dsp_freeverb : public dsp_impl_base
 			for ( unsigned i = 0; i < m_ch; i++ )
 			{
 				revmodel & e = m_buffers[ i ];
+				e.init(m_rate);
 				e.setwet(wettime);
 				e.setdry(drytime);
 				e.setdamp(dampness);
@@ -173,11 +174,11 @@ public:
 	static GUID g_get_guid() {
 		return guid_choruselem;
 	}
-	static void g_get_name(pfc::string_base & out) { out = "Reverb (Freeverb)"; }
+	static void g_get_name(pfc::string_base & out) { out = "Reverb"; }
 	static ui_element_config::ptr g_get_default_configuration() {
 		return makeConfig(true);
 	}
-	static const char * g_get_description() { return "Modifies the 'Freeverb' reverberation DSP effect."; }
+	static const char * g_get_description() { return "Modifies the reverberation DSP effect."; }
 	static GUID g_get_subclass() {
 		return ui_element_subclass_dsp;
 	}
@@ -407,7 +408,7 @@ class myElem_t : public  ui_element_impl_withpopup< uielem_freeverb > {
 	}
 
 	bool get_menu_command_description(pfc::string_base & out) {
-		out = "Opens a window for reverberation effects using the 'Freeverb' algorithm.";
+		out = "Opens a window for reverberation effects control.";
 		return true;
 	}
 
