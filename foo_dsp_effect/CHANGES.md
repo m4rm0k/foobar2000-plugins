@@ -1,6 +1,5 @@
 0.30.1:
 * Attempt fix of "illegal instruction" crash on ancient CPUs.
-- Should now just require SSE1 instead of SSE2 (MSVC2017 default)
 * Readd tempo algorithm switcher in the tempo DSP.
 
 0.30:
