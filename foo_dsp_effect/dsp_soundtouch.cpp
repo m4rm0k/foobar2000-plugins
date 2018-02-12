@@ -13,46 +13,20 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 #define BUFFER_SIZE 2048
-
+#define BUFFER_SIZE_RBTEMPO 4096
 
 class dsp_pitch : public dsp_impl_base
 {
 	SoundTouch * p_soundtouch;
-	RubberBandStretcher * rubber;
-	float **plugbuf;
-	float **m_scratch;
 	float* buffer_;
 	int m_rate, m_ch, m_ch_mask;
 	float pitch_amount;
 	bool st_enabled;
-private:
-
-	void flushchunks()
-	{
-			if (p_soundtouch)
-			{
-				size_t out_samples_gen = BUFFER_SIZE;
-				p_soundtouch->flush();
-				while (out_samples_gen > 0)
-				{
-					out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
-					if (out_samples_gen != 0)
-					{
-						audio_chunk * out = insert_chunk(out_samples_gen*m_ch);
-						out->set_data(buffer_, out_samples_gen, m_ch, m_rate, m_ch_mask);
-					}
-				}
-				p_soundtouch->clear();
-			}
-	}
 
 public:
 	dsp_pitch(dsp_preset const & in) : pitch_amount(0.00), m_rate(0), m_ch(0), m_ch_mask(0)
 	{
 		p_soundtouch = 0;
-		rubber = 0;
-		plugbuf = 0;
-		m_scratch = 0;
 		st_enabled = false;
 		parse_preset(pitch_amount, st_enabled, in);
 		buffer_ = NULL;
@@ -208,7 +182,7 @@ class dsp_tempo : public dsp_impl_base
 	float **m_scratch;
 	float* buffer_;
 	int m_rate, m_ch, m_ch_mask;
-
+	int pitch_shifter;
 	float pitch_amount;
 	bool st_enabled;
 private:
@@ -241,33 +215,49 @@ private:
 public:
 	dsp_tempo( dsp_preset const & in ) : pitch_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
 	{
-		p_soundtouch = 0;
-		rubber = 0;
-		plugbuf = 0;
-		m_scratch = 0;
+		p_soundtouch = NULL;
+		rubber = NULL;
+		plugbuf = NULL;
+		m_scratch = NULL;
 		st_enabled =false;
 		buffer_ = NULL;
-		parse_preset(pitch_amount,st_enabled, in);
+		pitch_shifter = 0;
+		parse_preset(pitch_amount,pitch_shifter,st_enabled, in);
 	}
 	~dsp_tempo(){
-
-
 		if (rubber)
 		{
 			flushchunks();
-			delete rubber;
+			
 			for (int c = 0; c < m_ch; ++c)
 			{
 				delete[] plugbuf[c]; plugbuf[c] = NULL;
 				delete[] m_scratch[c]; m_scratch[c] = NULL;
 			}
-			delete[] buffer_;
-			buffer_ = NULL;
+			if (buffer_)
+			{
+				delete[] buffer_;
+				buffer_ = NULL;
+			}
 			delete[] plugbuf;
 			delete[] m_scratch;
 			m_scratch = NULL;
 			plugbuf = NULL;
+			delete rubber;
 			rubber = 0;
+
+		}
+
+		if (p_soundtouch)
+		{
+			p_soundtouch->clear();
+			if (buffer_)
+			{
+				delete[] buffer_;
+				buffer_ = NULL;
+			}
+			delete p_soundtouch;
+			p_soundtouch = NULL;
 		}
 	}
 
@@ -287,7 +277,7 @@ public:
 	}
 
 	virtual void on_endoftrack(abort_callback & p_abort) {
-		if (st_enabled)
+		if (rubber && st_enabled)
 		{
 			flushchunks();
 		}
@@ -295,7 +285,7 @@ public:
 
 	virtual void on_endofplayback(abort_callback & p_abort) {
 		//same as flush, only at end of playback
-		if (st_enabled)
+		if (rubber &&st_enabled)
 		{
 			flushchunks();
 		}
@@ -321,10 +311,17 @@ public:
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
-		
+
+			if (pitch_shifter == 1)
+			{
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
 				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
-				if (rubber) delete rubber;
+				if (rubber)
+				{
+					delete rubber;
+					rubber = NULL;
+
+				}
 				if (plugbuf) {
 					for (int c = 0; c < m_ch; ++c) delete[] plugbuf[c];
 					delete[] plugbuf;
@@ -333,23 +330,52 @@ public:
 					for (int c = 0; c < m_ch; ++c) delete[] m_scratch[c];
 					delete[] m_scratch;
 				}
-				if (buffer_)delete[] buffer_;
-				buffer_ = new float[BUFFER_SIZE*m_ch + 1024 + 8192];
+				if (buffer_)
+				{
+					delete[] buffer_;
+					buffer_ = NULL;
+				}
+				buffer_ = new float[BUFFER_SIZE_RBTEMPO*m_ch + 1024 + 8192];
 
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				m_scratch = new float *[m_ch];
 				plugbuf = new float *[m_ch];
 				if (!rubber) return 0;
-				rubber->setMaxProcessSize(BUFFER_SIZE);
-				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE+ 1024 + 8192];
-				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE + 1024 + 8192];
+				rubber->setMaxProcessSize(BUFFER_SIZE_RBTEMPO);
+				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RBTEMPO + 1024 + 8192];
+				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RBTEMPO + 1024 + 8192];
 				st_enabled = true;
+			}
+			else if(pitch_shifter == 0)
+			{
+				if (p_soundtouch)
+				{
+					delete[] buffer_;
+					buffer_ = NULL;
+					delete p_soundtouch;
+					p_soundtouch = NULL;
+				}
+
+				buffer_ = new float[BUFFER_SIZE*m_ch];
+				p_soundtouch = new SoundTouch;
+				if (!p_soundtouch) return 0;
+				if (p_soundtouch)
+				{
+					p_soundtouch->setSampleRate(m_rate);
+					p_soundtouch->setChannels(m_ch);
+					p_soundtouch->setTempoChange(pitch_amount);
+					bool usequickseek = true;
+					bool useaafilter = true; //seems clearer without it
+					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);
+					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
+				}
+			}
 			
 		}
 
-		if (rubber) {
+		if (rubber && pitch_shifter == 1) {
 			t_size sample_count = chunk->get_sample_count();
-			size_t out_samples_gen = BUFFER_SIZE;
+			size_t out_samples_gen = BUFFER_SIZE_RBTEMPO;
 			audio_sample * current = chunk->get_data();
 			for (int c = 0; c < m_ch; ++c) {
 				int j = 0;
@@ -361,12 +387,34 @@ public:
 			rubber->process(plugbuf, sample_count, false);
 			flushchunks();
 		}
+		else if (p_soundtouch && pitch_shifter == 0)
+		{
+			t_size sample_count = chunk->get_sample_count();
+			size_t out_samples_gen = BUFFER_SIZE;
+			audio_sample * current = chunk->get_data();
+			p_soundtouch->putSamples(current, sample_count);
+			while (out_samples_gen > 0)
+			{
+				out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
+				if (out_samples_gen != 0)
+				{
+					audio_chunk * chunk = insert_chunk(out_samples_gen * m_ch);
+					chunk->set_data(buffer_, out_samples_gen, m_ch, m_rate, m_ch_mask);
+				}
+			}
+		}
 
 		return false;
 	}
 
+
 	virtual void flush() {
 		if (!st_enabled)return;
+
+		if (p_soundtouch) {
+			p_soundtouch->clear();
+
+		}
 		if (rubber)
 		{
 			flushchunks();
@@ -378,8 +426,12 @@ public:
 
 	virtual double get_latency() {
 		if (!st_enabled ) return 0;
-		if (rubber){
+		if (rubber && pitch_shifter == 1){
 			return (double)(rubber->getLatency()) / (double)m_rate;
+		}
+		if (p_soundtouch && pitch_shifter == 0)
+		{
+			return p_soundtouch->numSamples() / (double)m_rate;
 		}
 		return 0;
 	}
@@ -391,7 +443,7 @@ public:
 
 	static bool g_get_default_preset(dsp_preset & p_out)
 	{
-		make_preset(0.0,false, p_out);
+		make_preset(0.0,0,false, p_out);
 		return true;
 	}
 	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
@@ -399,22 +451,24 @@ public:
 		::RunDSPConfigPopupTempo( p_data, p_parent, p_callback );
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset(float pitch,bool enabled, dsp_preset & out)
+	static void make_preset(float pitch,int pitch_shifter,bool enabled, dsp_preset & out)
 	{
 		dsp_preset_builder builder;
 		builder << pitch;
+		builder << pitch_shifter;
 		builder << enabled;
 		builder.finish(g_get_guid(), out);
 	}
-	static void parse_preset(float & pitch,bool & enabled, const dsp_preset & in)
+	static void parse_preset(float & pitch,int & pitch_shifter,bool & enabled, const dsp_preset & in)
 	{
 		try
 		{
 			dsp_preset_parser parser(in);
 			parser >> pitch;
+			parser >> pitch_shifter;
 			parser >> enabled;
 		}
-		catch (exception_io_data) { pitch = 0.0; enabled = false; }
+		catch (exception_io_data) { pitch = 0.0; pitch_shifter = 0; enabled = false; }
 	}
 };
 
@@ -807,7 +861,7 @@ static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp
 class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>
 {
 public:
-	CMyDSPPopupTempo( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
+	CMyDSPPopupTempo(const dsp_preset & initData, dsp_preset_edit_callback & callback) : m_initData(initData), m_callback(callback) { }
 	enum { IDD = IDD_TEMPO };
 	enum
 	{
@@ -815,16 +869,15 @@ public:
 		pitchmax = 180
 
 	};
-	BEGIN_MSG_MAP( CMyDSPPopup )
-		MSG_WM_INITDIALOG( OnInitDialog )
-		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
-		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
+	BEGIN_MSG_MAP(CMyDSPPopup)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_TEMPOTYPE, CBN_SELCHANGE, OnChange)
-		
+
 		MSG_WM_HSCROLL(OnScroll)
 	END_MSG_MAP()
 private:
-
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
@@ -834,29 +887,33 @@ private:
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
 		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
+		int pitch_type;
 		{
 			float  pitch;
 			bool enabled;
-			dsp_tempo::parse_preset(pitch,enabled, m_initData);
-			slider_drytime.SetPos( (double)(pitch+75));
-			RefreshLabel( pitch);
+			dsp_tempo::parse_preset(pitch, pitch_type, enabled, m_initData);
+			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
+			slider_drytime.SetPos((double)(pitch + 75));
+			RefreshLabel(pitch);
 		}
 		return TRUE;
 	}
 
 
-	void OnButton( UINT, int id, CWindow )
+	void OnButton(UINT, int id, CWindow)
 	{
-		EndDialog( id );
+		EndDialog(id);
 	}
 
 	void OnChange(UINT, int id, CWindow)
 	{
 		float pitch;
 		pitch = slider_drytime.GetPos() - 90;
+		int p_type; //filter type
+		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		{
 			dsp_preset_impl preset;
-			dsp_tempo::make_preset(pitch,true, preset);
+			dsp_tempo::make_preset(pitch, p_type, true, preset);
 			m_callback.on_preset_changed(preset);
 		}
 		RefreshLabel(pitch);
@@ -866,34 +923,38 @@ private:
 	{
 		float pitch;
 		pitch = slider_drytime.GetPos() - 90;
+		int p_type; //filter type
+		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
 		{
 			dsp_preset_impl preset;
-			dsp_tempo::make_preset(pitch,true, preset);
+			dsp_tempo::make_preset(pitch, p_type, true, preset);
 			m_callback.on_preset_changed(preset);
 		}
 		RefreshLabel(pitch);
 	}
 
 
-	void RefreshLabel(float  pitch )
+	void RefreshLabel(float  pitch)
 	{
-		pfc::string_formatter msg; 
+		pfc::string_formatter msg;
 		msg << "Tempo: ";
 		msg << (pitch < 0 ? "" : "+");
-		msg << pfc::format_int( pitch) << "%";
-		::uSetDlgItemText( *this, IDC_TEMPOINFO, msg );
+		msg << pfc::format_int(pitch) << "%";
+		::uSetDlgItemText(*this, IDC_TEMPOINFO, msg);
 		msg.reset();
 	}
 	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 	dsp_preset_edit_callback & m_callback;
 	CTrackBarCtrl slider_drytime;
 };
-static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
+static void RunDSPConfigPopupTempo(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
 {
-	CMyDSPPopupTempo popup( p_data, p_callback );
-	if ( popup.DoModal(p_parent) != IDOK ) p_callback.on_preset_changed( p_data );
+	CMyDSPPopupTempo popup(p_data, p_callback);
+	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
 }
+
+
 
 
 
@@ -905,7 +966,7 @@ class uielem_pitchtempo : public CDialogImpl<uielem_pitchtempo>, public ui_eleme
 public:
 	uielem_pitchtempo(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
 
-		pitch = 0.0; p_type = 0; pitch_enabled = false;
+		pitch = 0.0; pitch_enabled = false;
 		tempo = 0.0; t_type = 0; tempo_enabled = false; rate = 0; rate_enabled = false;
 
 	}
@@ -924,6 +985,7 @@ public:
 		COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
 		COMMAND_HANDLER_EX(IDC_TEMPOENABLED_UI, BN_CLICKED, OnEnabledToggle2)
 		COMMAND_HANDLER_EX(IDC_RATENABLED_UI, BN_CLICKED, OnEnabledToggle3)
+		COMMAND_HANDLER_EX(IDC_TEMPOTYPE_UI, CBN_SELCHANGE, OnChange)
 		MSG_WM_HSCROLL(OnScroll)
 	END_MSG_MAP()
 
@@ -987,7 +1049,7 @@ private:
 	}
 
 
-	void PitchEnable(float pitch, bool enabled) {
+	void PitchEnable(float pitch,bool enabled) {
 		dsp_preset_impl preset;
 		dsp_pitch::make_preset(pitch, enabled, preset);
 		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
@@ -998,9 +1060,9 @@ private:
 	}
 
 
-	void TempoEnable(float pitch, bool enabled) {
+	void TempoEnable(float pitch, int pitch_type, bool enabled) {
 		dsp_preset_impl preset;
-		dsp_tempo::make_preset(pitch, enabled, preset);
+		dsp_tempo::make_preset(pitch, pitch_type, enabled, preset);
 		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 	}
 
@@ -1035,7 +1097,7 @@ private:
 		if (IsTempoEnabled()) {
 			GetConfig();
 			dsp_preset_impl preset;
-			dsp_tempo::make_preset(tempo,tempo_enabled, preset);
+			dsp_tempo::make_preset(tempo, t_type, tempo_enabled, preset);
 			//yes change api;
 			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 		}
@@ -1080,7 +1142,7 @@ private:
 
 			if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_tempo.m_hWnd)
 			{
-				TempoEnable(tempo, tempo_enabled);
+				TempoEnable(tempo, t_type, tempo_enabled);
 			}
 		}
 
@@ -1106,6 +1168,13 @@ private:
 		}
 	}
 
+	void DSPConfigChange(dsp_chain_config const & cfg)
+	{
+		if (!m_ownPitchUpdate && !m_ownTempoUpdate && !m_ownRateUpdate && m_hWnd != NULL) {
+			ApplySettings();
+		}
+	}
+
 	//set settings if from another control
 	void ApplySettings()
 	{
@@ -1123,7 +1192,7 @@ private:
 
 		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_tempo, preset)) {
 			SetTempoEnabled(true);
-			dsp_tempo::parse_preset(tempo,tempo_enabled, preset);
+			dsp_tempo::parse_preset(tempo, t_type, tempo_enabled, preset);
 			SetTempoEnabled(tempo_enabled);
 			SetConfig();
 		}
@@ -1150,14 +1219,14 @@ private:
 
 	void OnConfigChanged() {
 		if (IsPitchEnabled()) {
-			PitchEnable(pitch,pitch_enabled);
+			PitchEnable(pitch, pitch_enabled);
 		}
 		else {
 			PitchDisable();
 		}
 
 		if (IsTempoEnabled()) {
-			TempoEnable(tempo,tempo_enabled);
+			TempoEnable(tempo, t_type, tempo_enabled);
 		}
 		else {
 			TempoDisable();
@@ -1178,8 +1247,8 @@ private:
 		pitch = pitch_sl / 100.00;
 		pitch_enabled = IsPitchEnabled();
 
-
 		tempo = slider_tempo.GetPos() - 95;
+		t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
 		tempo_enabled = IsTempoEnabled();
 
 		rate = slider_rate.GetPos() - 50;
@@ -1194,8 +1263,14 @@ private:
 	{
 		float pitch2 = pitch * 100.00;
 		slider_pitch.SetPos((double)(pitch2 + 1200));
+
+
+		CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+		::SendMessage(w, CB_SETCURSEL, t_type, 0);
 		slider_tempo.SetPos((double)(tempo + 95));
+
 		slider_rate.SetPos((double)(rate + 50));
+
 		RefreshLabel(pitch2 / 100, tempo, rate);
 
 	}
@@ -1255,24 +1330,30 @@ private:
 		m_buttonPitchEnabled = GetDlgItem(IDC_PITCHENABLED_UI);
 		slider_pitch.SetRange(0, pitchmax);
 		m_ownPitchUpdate = false;
+
 		slider_tempo = GetDlgItem(IDC_TEMPO_UI);
 		slider_tempo.SetRange(0, 190);
 		m_buttonTempoEnabled = GetDlgItem(IDC_TEMPOENABLED_UI);
+		CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
+		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
 		m_ownTempoUpdate = false;
+
 		m_buttonRateEnabled = GetDlgItem(IDC_RATENABLED_UI);
 		slider_rate = GetDlgItem(IDC_RATE_UI);
 		slider_rate.SetRange(0, tempomax);
 		m_ownRateUpdate = false;
+
+
 		ApplySettings();
 		return FALSE;
 	}
-	
-	
+
+
 	uint32_t shit;
 
 
 	float  pitch;
-	int p_type;
 	int t_type;
 	float tempo;
 	float rate;
@@ -1280,7 +1361,7 @@ private:
 	CTrackBarCtrl slider_pitch, slider_tempo, slider_rate;
 	CButton m_buttonPitchEnabled, m_buttonTempoEnabled, m_buttonRateEnabled;
 	bool m_ownPitchUpdate, m_ownTempoUpdate, m_ownRateUpdate;
-	protected:
+protected:
 	const ui_element_instance_callback::ptr m_callback;
 };
 
