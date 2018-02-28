@@ -78,7 +78,7 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shared.lib;msdmo.lib;dmoguids.lib;amstrmid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>C:\apps\foobar2000\components\foo_dsp_dmo.dll</OutputFile>
       <AdditionalLibraryDirectories>..\shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -148,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dmodsp.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_dsp_dmo.rc" />
