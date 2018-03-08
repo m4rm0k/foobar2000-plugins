@@ -491,17 +491,7 @@ private:
 	bool m_ownEchoUpdate;
 
 	static uint32_t parseConfig(ui_element_config::ptr cfg) {
-		::ui_element_config_parser in(cfg);
-		try {
-			::ui_element_config_parser in(cfg);
-			uint32_t flags; in >> flags;
-			return flags;
-		}
-		catch (exception_io_data) {
-			// If we got here, someone's feeding us nonsense, fall back to defaults
-			return 1;
-		}
-
+		return 1;
 	}
 	static ui_element_config::ptr makeConfig(bool init = false) {
 		ui_element_config_builder out;

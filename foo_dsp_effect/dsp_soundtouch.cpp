@@ -80,24 +80,24 @@ public:
 			m_ch_mask = chunk->get_channel_config();
 			if (p_soundtouch)
 			{
-					delete[] buffer_;
-					delete p_soundtouch;
+				delete[] buffer_;
+				delete p_soundtouch;
 			}
 
-				buffer_ = new float[BUFFER_SIZE*m_ch];
-				p_soundtouch = new SoundTouch;
-				if (!p_soundtouch) return 0;
-				if (p_soundtouch)
-				{
-					p_soundtouch->setSampleRate(m_rate);
-					p_soundtouch->setChannels(m_ch);
-					p_soundtouch->setPitchSemiTones(pitch_amount);
-					bool usequickseek = true;
-					bool useaafilter = true; //seems clearer without it
-					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);
-					p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
-				}
+			buffer_ = new float[BUFFER_SIZE*m_ch];
+			p_soundtouch = new SoundTouch;
+			if (!p_soundtouch) return 0;
+			if (p_soundtouch)
+			{
+				p_soundtouch->setSampleRate(m_rate);
+				p_soundtouch->setChannels(m_ch);
+				p_soundtouch->setPitchSemiTones(pitch_amount);
+				bool usequickseek = true;
+				bool useaafilter = true; //seems clearer without it
+				p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);
+				p_soundtouch->setSetting(SETTING_USE_AA_FILTER, useaafilter);
 			}
+		}
 
 
 		if (p_soundtouch)
@@ -105,7 +105,7 @@ public:
 			t_size sample_count = chunk->get_sample_count();
 			size_t out_samples_gen = BUFFER_SIZE;
 			audio_sample * current = chunk->get_data();
-			p_soundtouch->putSamples(current,sample_count);
+			p_soundtouch->putSamples(current, sample_count);
 			while (out_samples_gen > 0)
 			{
 				out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
@@ -116,13 +116,13 @@ public:
 				}
 			}
 		}
-		
+
 		return false;
 	}
 
 	virtual void flush() {
 		if (!st_enabled)return;
-		if (p_soundtouch){
+		if (p_soundtouch) {
 			p_soundtouch->clear();
 
 		}
@@ -145,29 +145,29 @@ public:
 		return false;
 	}
 
-	static bool g_get_default_preset( dsp_preset & p_out )
+	static bool g_get_default_preset(dsp_preset & p_out)
 	{
-		make_preset( 0.0,false, p_out );
+		make_preset(0.0, false, p_out);
 		return true;
 	}
-	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
+	static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
 	{
-		::RunDSPConfigPopup( p_data, p_parent, p_callback );
+		::RunDSPConfigPopup(p_data, p_parent, p_callback);
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( float pitch,bool enabled, dsp_preset & out )
+	static void make_preset(float pitch, bool enabled, dsp_preset & out)
 	{
-		dsp_preset_builder builder; 
-		builder << pitch; 
+		dsp_preset_builder builder;
+		builder << pitch;
 		builder << enabled;
-		builder.finish( g_get_guid(), out );
-	}                        
-	static void parse_preset(float & pitch,bool &enabled, const dsp_preset & in)
+		builder.finish(g_get_guid(), out);
+	}
+	static void parse_preset(float & pitch, bool &enabled, const dsp_preset & in)
 	{
 		try
 		{
 			dsp_preset_parser parser(in);
-			parser >> pitch; 
+			parser >> pitch;
 			parser >> enabled;
 		}
 		catch (exception_io_data) { pitch = 0.0; enabled = false; }
@@ -501,15 +501,15 @@ private:
 	}
 
 public:
-	dsp_rate( dsp_preset const & in ) : pitch_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
+	dsp_rate(dsp_preset const & in) : pitch_amount(0.00), m_rate(0), m_ch(0), m_ch_mask(0)
 	{
-		p_soundtouch=0;
+		p_soundtouch = 0;
 		buffer_ = NULL;
 		st_enabled = false;
-		parse_preset( pitch_amount,st_enabled, in );
-		
+		parse_preset(pitch_amount, st_enabled, in);
+
 	}
-	~dsp_rate(){
+	~dsp_rate() {
 		if (p_soundtouch)
 		{
 			p_soundtouch->clear();
@@ -524,7 +524,7 @@ public:
 	// Every DSP type is identified by a GUID.
 	static GUID g_get_guid() {
 		// {8C12D81E-BB88-4056-B4C0-EAFA4E9F3B95}
-		
+
 		return guid_pbrate;
 	}
 
@@ -545,7 +545,7 @@ public:
 	virtual void on_endofplayback(abort_callback & p_abort) {
 		// This method is called on end of playback instead of flush().
 		// We need to do the same thing as flush(), so we just call it.
-		
+
 	}
 
 	// The framework feeds input to our DSP using this method.
@@ -553,16 +553,16 @@ public:
 	// stream characteristics, i.e. same sample rate, channel count
 	// and channel configuration.
 	virtual bool on_chunk(audio_chunk * chunk, abort_callback & p_abort) {
-	
+
 
 		if (pitch_amount == 0)st_enabled = false;
 		if (!st_enabled) return true;
 
-		if ( chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask )
+		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
 		{
 			if (p_soundtouch)delete p_soundtouch;
-			if(buffer_)delete[] buffer_;
-		
+			if (buffer_)delete[] buffer_;
+
 
 			m_rate = chunk->get_srate();
 			m_ch = chunk->get_channels();
@@ -574,7 +574,7 @@ public:
 			p_soundtouch->setRateChange(pitch_amount);
 			st_enabled = true;
 			buffer_ = new float[BUFFER_SIZE*m_ch];
-			
+
 		}
 		if (p_soundtouch && st_enabled)
 		{
@@ -584,7 +584,7 @@ public:
 			p_soundtouch->putSamples(current, sample_count);
 			while (out_samples_gen > 0)
 			{
-				out_samples_gen = p_soundtouch->receiveSamples(buffer_,out_samples_gen);
+				out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
 				if (out_samples_gen != 0)
 				{
 					audio_chunk * chunk = insert_chunk(out_samples_gen * m_ch);
@@ -619,35 +619,34 @@ public:
 		return false;
 	}
 
-	static bool g_get_default_preset( dsp_preset & p_out )
+	static bool g_get_default_preset(dsp_preset & p_out)
 	{
-		make_preset( 0.0,false, p_out );
+		make_preset(0.0, false, p_out);
 		return true;
 	}
-	static void g_show_config_popup( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
+	static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
 	{
-		::RunDSPConfigPopupRate( p_data, p_parent, p_callback );
+		::RunDSPConfigPopupRate(p_data, p_parent, p_callback);
 	}
 	static bool g_have_config_popup() { return true; }
-	static void make_preset( float pitch,bool enabled, dsp_preset & out )
+	static void make_preset(float pitch, bool enabled, dsp_preset & out)
 	{
-		dsp_preset_builder builder; 
-		builder << pitch; 
+		dsp_preset_builder builder;
+		builder << pitch;
 		builder << enabled;
-		builder.finish( g_get_guid(), out );
-	}                        
-	static void parse_preset(float & pitch,bool & enabled, const dsp_preset & in)
+		builder.finish(g_get_guid(), out);
+	}
+	static void parse_preset(float & pitch, bool & enabled, const dsp_preset & in)
 	{
 		try
 		{
 			dsp_preset_parser parser(in);
-			parser >> pitch; 
+			parser >> pitch;
 			parser >> enabled;
 		}
 		catch (exception_io_data) { pitch = 0.0; enabled = false; }
 	}
 };
-
 
 class CMyDSPPopupPitch : public CDialogImpl<CMyDSPPopupPitch>
 {
@@ -866,7 +865,7 @@ public:
 	enum
 	{
 		pitchmin = 0,
-		pitchmax = 180
+		tempomax = 19000
 
 	};
 	BEGIN_MSG_MAP(CMyDSPPopup)
@@ -882,7 +881,7 @@ private:
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 		slider_drytime = GetDlgItem(IDC_TEMPO);
-		slider_drytime.SetRange(0, pitchmax);
+		slider_drytime.SetRange(0,tempomax);
 
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
@@ -893,7 +892,8 @@ private:
 			bool enabled;
 			dsp_tempo::parse_preset(pitch, pitch_type, enabled, m_initData);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
-			slider_drytime.SetPos((double)(pitch + 75));
+			float tempo2 = pitch * 100;
+			slider_drytime.SetPos((double)(tempo2 + 9500));
 			RefreshLabel(pitch);
 		}
 		return TRUE;
@@ -908,7 +908,8 @@ private:
 	void OnChange(UINT, int id, CWindow)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 90;
+		float tempos = slider_drytime.GetPos() - 9500;
+		pitch = tempos / 100.;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		{
@@ -922,7 +923,8 @@ private:
 	void OnScroll(UINT scrollID, int id, CWindow window)
 	{
 		float pitch;
-		pitch = slider_drytime.GetPos() - 90;
+		float tempos = slider_drytime.GetPos() - 9500;
+		pitch = tempos / 100.;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
 		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
@@ -940,7 +942,7 @@ private:
 		pfc::string_formatter msg;
 		msg << "Tempo: ";
 		msg << (pitch < 0 ? "" : "+");
-		msg << pfc::format_int(pitch) << "%";
+		msg << pfc::format_float(pitch, 0, 2) << " %";
 		::uSetDlgItemText(*this, IDC_TEMPOINFO, msg);
 		msg.reset();
 	}
@@ -976,7 +978,7 @@ public:
 	{
 		pitchmin = 0,
 		pitchmax = 2400,
-		tempomax = 150
+		tempomax = 19000
 
 	};
 
@@ -1247,7 +1249,8 @@ private:
 		pitch = pitch_sl / 100.00;
 		pitch_enabled = IsPitchEnabled();
 
-		tempo = slider_tempo.GetPos() - 95;
+		float tempos = slider_tempo.GetPos() - 9500;
+		tempo = tempos / 100.;
 		t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
 		tempo_enabled = IsTempoEnabled();
 
@@ -1264,14 +1267,14 @@ private:
 		float pitch2 = pitch * 100.00;
 		slider_pitch.SetPos((double)(pitch2 + 1200));
 
-
+		float tempo2 = tempo * 100;
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
 		::SendMessage(w, CB_SETCURSEL, t_type, 0);
-		slider_tempo.SetPos((double)(tempo + 95));
+		slider_tempo.SetPos((double)(tempo2 + 9500));
 
 		slider_rate.SetPos((double)(rate + 50));
 
-		RefreshLabel(pitch2 / 100, tempo, rate);
+		RefreshLabel(pitch2 / 100, tempo2/100, rate);
 
 	}
 
@@ -1286,7 +1289,7 @@ private:
 
 		msg << "Tempo: ";
 		msg << (tempo < 0 ? "" : "+");
-		msg << pfc::format_int(tempo) << "%";
+		msg << pfc::format_float(tempo, 0, 2) << " %";
 		::uSetDlgItemText(*this, IDC_TEMPOINFO_UI, msg);
 
 		msg.reset();
@@ -1297,16 +1300,9 @@ private:
 	}
 
 	static uint32_t parseConfig(ui_element_config::ptr cfg) {
-		::ui_element_config_parser in(cfg);
-		try {
 			::ui_element_config_parser in(cfg);
 			uint32_t flags; in >> flags;
-			return flags;
-		}
-		catch (exception_io_data) {
-			// If we got here, someone's feeding us nonsense, fall back to defaults
-			return 1;
-		}
+			return 0;
 
 	}
 	static ui_element_config::ptr makeConfig(bool init = false) {
@@ -1332,7 +1328,7 @@ private:
 		m_ownPitchUpdate = false;
 
 		slider_tempo = GetDlgItem(IDC_TEMPO_UI);
-		slider_tempo.SetRange(0, 190);
+		slider_tempo.SetRange(0, tempomax);
 		m_buttonTempoEnabled = GetDlgItem(IDC_TEMPOENABLED_UI);
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
