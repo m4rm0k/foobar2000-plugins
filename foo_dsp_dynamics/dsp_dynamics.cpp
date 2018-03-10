@@ -72,190 +72,6 @@ namespace {
 		return value;
 	}
 
-	void compressor(double *righta, double *lefta, struct compstruct *cs) {
-
-		double levelsq0, levelsqe;
-		double gain, qgain, tgain;
-		double newright, newleft;
-		double efilt;
-		double fastgain, slowgain, tslowgain;
-		double right, left, rightd, leftd;
-		double nrgain, nlgain, ngain, ngsq;
-		double sqrtrpeakgain;
-		int i;
-		int skipmode;
-
-		right = *righta;
-		left = *lefta;
-
-		cs->rightdelay[cs->ndelayptr] = right;
-		cs->leftdelay[cs->ndelayptr] = left;
-		cs->ndelayptr++;
-		if (cs->ndelayptr >= cs->ndelay)
-			cs->ndelayptr = 0;
-		/* enable/disable compression */
-
-		skipmode = 0;
-		if (cs->compress == 0) {
-			skipmode = 1;
-			goto skipagc;
-		}
-		levelsq0 = (right) * (right)+(left) * (left);
-
-		if (levelsq0 > cs->rlevelsq0) {
-			cs->rlevelsq0 = (levelsq0 * cs->rlevelsq0ffilter) +
-				cs->rlevelsq0 * (1 - cs->rlevelsq0ffilter);
-		}
-		else {
-			cs->rlevelsq0 = (levelsq0 * cs->rlevelsq0filter) +
-				cs->rlevelsq0 * (1 - cs->rlevelsq0filter);
-		}
-
-		if (cs->rlevelsq0 <= cs->floorlevel * cs->floorlevel)
-			goto skipagc; /* no compression at low signal levels */
-
-		if (cs->rlevelsq0 > cs->rlevelsq1) {
-			cs->rlevelsq1 = cs->rlevelsq0;
-		}
-		else {
-			cs->rlevelsq1 = cs->rlevelsq0 * cs->rlevelsq1filter +
-				cs->rlevelsq1 * (1 - cs->rlevelsq1filter);
-		}
-		/* that was the decay */
-
-		cs->rlevelsqn[0] = cs->rlevelsq1;
-		for (i = 0; i < NFILT - 1; i++) {
-			if (cs->rlevelsqn[i] > cs->rlevelsqn[i + 1])
-				cs->rlevelsqn[i + 1] = cs->rlevelsqn[i];
-			else
-				cs->rlevelsqn[i + 1] = cs->rlevelsqn[i] * cs->rlevelsq1filter +
-				cs->rlevelsqn[i + 1] * (1 - cs->rlevelsq1filter);
-		}
-
-
-		efilt = cs->rlevelsqefilter;
-		levelsqe = cs->rlevelsqe[0] = cs->rlevelsqn[NFILT - 1];
-		for (i = 0; i < NEFILT - 1; i++) {
-			cs->rlevelsqe[i + 1] = cs->rlevelsqe[i] * efilt +
-				cs->rlevelsqe[i + 1] * (1.0 - efilt);
-			if (cs->rlevelsqe[i + 1] > levelsqe)
-				levelsqe = cs->rlevelsqe[i + 1];
-			efilt *= 1.0 / 1.5;
-		}
-
-		gain = cs->targetlevel / sqrt(levelsqe);
-		if (cs->compressionratio < 0.99) {
-			if (cs->compressionratio == 0.50)
-				gain = sqrt(gain);
-			else
-				gain = exp(log(gain) * cs->compressionratio);
-		}
-
-		if (gain < cs->rgain)
-			cs->rgain = gain * cs->rlevelsqefilter / 2 +
-			cs->rgain * (1 - cs->rlevelsqefilter / 2);
-		else
-			cs->rgain = gain * cs->rgainfilter +
-			cs->rgain * (1 - cs->rgainfilter);
-
-		cs->lastrgain = cs->rgain;
-		if (gain < cs->lastrgain)
-			cs->lastrgain = gain;
-
-	skipagc:;
-
-		tgain = cs->lastrgain;
-
-		leftd = cs->leftdelay[cs->ndelayptr];
-		rightd = cs->rightdelay[cs->ndelayptr];
-
-		fastgain = tgain;
-		if (fastgain > cs->maxfastgain)
-			fastgain = cs->maxfastgain;
-
-		if (fastgain < 0.0001)
-			fastgain = 0.0001;
-
-		if (cs->fastgaincompressionratio == 0.25) {
-			qgain = sqrt(sqrt(fastgain));
-		}
-		else if (cs->fastgaincompressionratio == 0.5) {
-			qgain = sqrt(fastgain);
-		}
-		else if (cs->fastgaincompressionratio == 1.0) {
-			qgain = fastgain;
-		}
-		else {
-			qgain = exp(log(fastgain) * cs->fastgaincompressionratio);
-		}
-
-		tslowgain = tgain / qgain;
-		if (tslowgain > cs->maxslowgain)
-			tslowgain = cs->maxslowgain;
-		if (tslowgain < cs->rmastergain0)
-			cs->rmastergain0 = tslowgain;
-		else
-			cs->rmastergain0 = tslowgain * cs->rmastergain0filter +
-			(1 - cs->rmastergain0filter) * cs->rmastergain0;
-
-		slowgain = cs->rmastergain0;
-		if (skipmode == 0)
-			cs->npeakgain = slowgain * qgain;
-
-		/**/
-		newright = rightd * cs->npeakgain;
-		if (fabs(newright) >= cs->maxlevel)
-			nrgain = cs->maxlevel / fabs(newright);
-		else
-			nrgain = 1.0;
-
-		newleft = leftd * cs->npeakgain;
-		if (fabs(newleft) >= cs->maxlevel)
-			nlgain = cs->maxlevel / fabs(newleft);
-		else
-			nlgain = 1.0;
-
-		ngain = nrgain;
-		if (nlgain < ngain)
-			ngain = nlgain;
-
-		ngsq = ngain * ngain;
-		if (ngsq <= cs->rpeakgain0) {
-			cs->rpeakgain0 = ngsq /* * 0.50 + cs->rpeakgain0 * 0.50 */;
-			cs->rpeaklimitdelay = cs->peaklimitdelay;
-		}
-		else if (cs->rpeaklimitdelay == 0) {
-			double tnrgain;
-			if (nrgain > 1.0)
-				tnrgain = 1.0;
-			else
-				tnrgain = nrgain;
-			cs->rpeakgain0 = tnrgain * cs->rpeakgainfilter +
-				(1.0 - cs->rpeakgainfilter) * cs->rpeakgain0;
-		}
-
-		if (cs->rpeakgain0 <= cs->rpeakgain1) {
-			cs->rpeakgain1 = cs->rpeakgain0;
-			cs->rpeaklimitdelay = cs->peaklimitdelay;
-		}
-		else if (cs->rpeaklimitdelay == 0) {
-			cs->rpeakgain1 = cs->rpeakgainfilter * cs->rpeakgain0 +
-				(1.0 - cs->rpeakgainfilter) * cs->rpeakgain1;
-		}
-		else {
-			--cs->rpeaklimitdelay;
-		}
-
-		sqrtrpeakgain = sqrt(cs->rpeakgain1);
-		cs->totalgain = cs->npeakgain * sqrtrpeakgain;
-
-		right = newright * sqrtrpeakgain;
-		*righta = hardlimit(right, 32200, 32767);
-
-		left = newleft * sqrtrpeakgain;
-		*lefta = hardlimit(left, 32200, 32767);
-	}
-
 
 	static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback);
 	class dsp_dynamics : public dsp_impl_base
@@ -273,16 +89,21 @@ namespace {
 		{
 			dynamics_enabled = true;
 			parse_preset(peaklimit, releasetime, fastratio, slowratio, gain, dynamics_enabled, in);
-			state.rightdelay = NULL;
-			state.leftdelay = NULL;
-
 			recalculate_parameters();
 		}
 
 		~dsp_dynamics()
 		{
-			free(state.rightdelay);
-			free(state.leftdelay);
+			if (state.rightdelay)
+			{
+				free(state.rightdelay);
+				state.rightdelay = NULL;
+			}
+			if (state.leftdelay)
+			{
+				free(state.leftdelay);
+				state.leftdelay = NULL;
+			}
 		}
 
 		static GUID g_get_guid()
@@ -324,7 +145,7 @@ namespace {
 						dleft *= gain * 32767.0;
 						dright *= gain * 32767.0;
 						if (state.compress)
-							compressor(&dright, &dleft, &state);
+							compressor(&dright, &dleft);
 						chunk->get_data()[n] = dleft / 32767.0;
 						chunk->get_data()[n + 1] = dright / 32767.0;
 					}
@@ -341,7 +162,7 @@ namespace {
 						dleft *= gain * 32767.0;
 						dright = dleft;
 						if (state.compress)
-							compressor(&dright, &dleft, &state);
+							compressor(&dright, &dleft);
 						chunk->get_data()[n] = dleft / 32767.0;
 					}
 
@@ -412,8 +233,8 @@ namespace {
 	private:
 		void recalculate_parameters(void) {
 			int i;
-			free(state.rightdelay);
-			free(state.leftdelay);
+			memset(&state, 0, sizeof(compstruct));
+
 
 			/* These filters should filter at least the lowest audio freq */
 			state.rlevelsq0filter = .001;
@@ -483,6 +304,190 @@ namespace {
 				state.rlevelsqn[i] = 0;
 			for (i = 0; i < NEFILT; i++)
 				state.rlevelsqe[i] = 0;
+		}
+
+		void compressor(double *righta, double *lefta) {
+
+			double levelsq0, levelsqe;
+			double gain, qgain, tgain;
+			double newright, newleft;
+			double efilt;
+			double fastgain, slowgain, tslowgain;
+			double right, left, rightd, leftd;
+			double nrgain, nlgain, ngain, ngsq;
+			double sqrtrpeakgain;
+			int i;
+			int skipmode;
+
+			right = *righta;
+			left = *lefta;
+
+			state.rightdelay[state.ndelayptr] = right;
+			state.leftdelay[state.ndelayptr] = left;
+			state.ndelayptr++;
+			if (state.ndelayptr >= state.ndelay)
+				state.ndelayptr = 0;
+			/* enable/disable compression */
+
+			skipmode = 0;
+			if (state.compress == 0) {
+				skipmode = 1;
+				goto skipagc;
+			}
+			levelsq0 = (right) * (right)+(left) * (left);
+
+			if (levelsq0 > state.rlevelsq0) {
+				state.rlevelsq0 = (levelsq0 * state.rlevelsq0ffilter) +
+					state.rlevelsq0 * (1 - state.rlevelsq0ffilter);
+			}
+			else {
+				state.rlevelsq0 = (levelsq0 * state.rlevelsq0filter) +
+					state.rlevelsq0 * (1 - state.rlevelsq0filter);
+			}
+
+			if (state.rlevelsq0 <= state.floorlevel * state.floorlevel)
+				goto skipagc; /* no compression at low signal levels */
+
+			if (state.rlevelsq0 > state.rlevelsq1) {
+				state.rlevelsq1 = state.rlevelsq0;
+			}
+			else {
+				state.rlevelsq1 = state.rlevelsq0 * state.rlevelsq1filter +
+					state.rlevelsq1 * (1 - state.rlevelsq1filter);
+			}
+			/* that was the decay */
+
+			state.rlevelsqn[0] = state.rlevelsq1;
+			for (i = 0; i < NFILT - 1; i++) {
+				if (state.rlevelsqn[i] > state.rlevelsqn[i + 1])
+					state.rlevelsqn[i + 1] = state.rlevelsqn[i];
+				else
+					state.rlevelsqn[i + 1] = state.rlevelsqn[i] * state.rlevelsq1filter +
+					state.rlevelsqn[i + 1] * (1 - state.rlevelsq1filter);
+			}
+
+
+			efilt = state.rlevelsqefilter;
+			levelsqe = state.rlevelsqe[0] = state.rlevelsqn[NFILT - 1];
+			for (i = 0; i < NEFILT - 1; i++) {
+				state.rlevelsqe[i + 1] = state.rlevelsqe[i] * efilt +
+					state.rlevelsqe[i + 1] * (1.0 - efilt);
+				if (state.rlevelsqe[i + 1] > levelsqe)
+					levelsqe = state.rlevelsqe[i + 1];
+				efilt *= 1.0 / 1.5;
+			}
+
+			gain = state.targetlevel / sqrt(levelsqe);
+			if (state.compressionratio < 0.99) {
+				if (state.compressionratio == 0.50)
+					gain = sqrt(gain);
+				else
+					gain = exp(log(gain) * state.compressionratio);
+			}
+
+			if (gain < state.rgain)
+				state.rgain = gain * state.rlevelsqefilter / 2 +
+				state.rgain * (1 - state.rlevelsqefilter / 2);
+			else
+				state.rgain = gain * state.rgainfilter +
+				state.rgain * (1 - state.rgainfilter);
+
+			state.lastrgain = state.rgain;
+			if (gain < state.lastrgain)
+				state.lastrgain = gain;
+
+		skipagc:;
+
+			tgain = state.lastrgain;
+
+			leftd = state.leftdelay[state.ndelayptr];
+			rightd = state.rightdelay[state.ndelayptr];
+
+			fastgain = tgain;
+			if (fastgain > state.maxfastgain)
+				fastgain = state.maxfastgain;
+
+			if (fastgain < 0.0001)
+				fastgain = 0.0001;
+
+			if (state.fastgaincompressionratio == 0.25) {
+				qgain = sqrt(sqrt(fastgain));
+			}
+			else if (state.fastgaincompressionratio == 0.5) {
+				qgain = sqrt(fastgain);
+			}
+			else if (state.fastgaincompressionratio == 1.0) {
+				qgain = fastgain;
+			}
+			else {
+				qgain = exp(log(fastgain) * state.fastgaincompressionratio);
+			}
+
+			tslowgain = tgain / qgain;
+			if (tslowgain > state.maxslowgain)
+				tslowgain = state.maxslowgain;
+			if (tslowgain < state.rmastergain0)
+				state.rmastergain0 = tslowgain;
+			else
+				state.rmastergain0 = tslowgain * state.rmastergain0filter +
+				(1 - state.rmastergain0filter) * state.rmastergain0;
+
+			slowgain = state.rmastergain0;
+			if (skipmode == 0)
+				state.npeakgain = slowgain * qgain;
+
+			/**/
+			newright = rightd * state.npeakgain;
+			if (fabs(newright) >= state.maxlevel)
+				nrgain = state.maxlevel / fabs(newright);
+			else
+				nrgain = 1.0;
+
+			newleft = leftd * state.npeakgain;
+			if (fabs(newleft) >= state.maxlevel)
+				nlgain = state.maxlevel / fabs(newleft);
+			else
+				nlgain = 1.0;
+
+			ngain = nrgain;
+			if (nlgain < ngain)
+				ngain = nlgain;
+
+			ngsq = ngain * ngain;
+			if (ngsq <= state.rpeakgain0) {
+				state.rpeakgain0 = ngsq /* * 0.50 + cs->rpeakgain0 * 0.50 */;
+				state.rpeaklimitdelay = state.peaklimitdelay;
+			}
+			else if (state.rpeaklimitdelay == 0) {
+				double tnrgain;
+				if (nrgain > 1.0)
+					tnrgain = 1.0;
+				else
+					tnrgain = nrgain;
+				state.rpeakgain0 = tnrgain * state.rpeakgainfilter +
+					(1.0 - state.rpeakgainfilter) * state.rpeakgain0;
+			}
+
+			if (state.rpeakgain0 <= state.rpeakgain1) {
+				state.rpeakgain1 = state.rpeakgain0;
+				state.rpeaklimitdelay = state.peaklimitdelay;
+			}
+			else if (state.rpeaklimitdelay == 0) {
+				state.rpeakgain1 = state.rpeakgainfilter * state.rpeakgain0 +
+					(1.0 - state.rpeakgainfilter) * state.rpeakgain1;
+			}
+			else {
+				--state.rpeaklimitdelay;
+			}
+
+			sqrtrpeakgain = sqrt(state.rpeakgain1);
+			state.totalgain = state.npeakgain * sqrtrpeakgain;
+
+			right = newright * sqrtrpeakgain;
+			*righta = hardlimit(right, 32200, 32767);
+
+			left = newleft * sqrtrpeakgain;
+			*lefta = hardlimit(left, 32200, 32767);
 		}
 	};
 
@@ -610,7 +615,7 @@ namespace {
 
 
 
-#define MYVERSION "0.1"
+#define MYVERSION "0.2.1"
 
 	static pfc::string_formatter g_get_component_about()
 	{
