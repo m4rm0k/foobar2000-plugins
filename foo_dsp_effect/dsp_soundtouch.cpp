@@ -315,7 +315,8 @@ public:
 			if (pitch_shifter == 1)
 			{
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
-				float ratios = pitch_amount >= 1.0 ? 1.0 - (0.01 * pitch_amount) : 1.0 + 0.01 *-pitch_amount;
+				float ratios = 1. / (1. + (pitch_amount / 100.));
+			//	ratios = ((ratios - 0.5) * 1000 );
 				if (rubber)
 				{
 					delete rubber;
@@ -1337,7 +1338,7 @@ private:
 
 		m_buttonRateEnabled = GetDlgItem(IDC_RATENABLED_UI);
 		slider_rate = GetDlgItem(IDC_RATE_UI);
-		slider_rate.SetRange(0, tempomax);
+		slider_rate.SetRange(0, 150);
 		m_ownRateUpdate = false;
 
 
