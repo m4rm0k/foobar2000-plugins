@@ -13,7 +13,7 @@ static void RunDSPConfigPopup( const dsp_preset & p_data, HWND p_parent, dsp_pre
 static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback );
 #define BUFFER_SIZE 2048
-#define BUFFER_SIZE_RBTEMPO 4096
+#define BUFFER_SIZE_RBTEMPO 1024
 
 class dsp_pitch : public dsp_impl_base
 {
@@ -183,7 +183,7 @@ class dsp_tempo : public dsp_impl_base
 	float* buffer_;
 	int m_rate, m_ch, m_ch_mask;
 	int pitch_shifter;
-	float pitch_amount;
+	float tempo_amount;
 	bool st_enabled;
 private:
 	void flushchunks()
@@ -213,7 +213,7 @@ private:
 	}
 
 public:
-	dsp_tempo( dsp_preset const & in ) : pitch_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
+	dsp_tempo( dsp_preset const & in ) : tempo_amount(0.00), m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
 	{
 		p_soundtouch = NULL;
 		rubber = NULL;
@@ -222,7 +222,7 @@ public:
 		st_enabled =false;
 		buffer_ = NULL;
 		pitch_shifter = 0;
-		parse_preset(pitch_amount,pitch_shifter,st_enabled, in);
+		parse_preset(tempo_amount,pitch_shifter,st_enabled, in);
 	}
 	~dsp_tempo(){
 		if (rubber)
@@ -303,7 +303,7 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
-		if (pitch_amount == 0)st_enabled = false;
+		if (tempo_amount == 0)st_enabled = false;
 		if (!st_enabled) return true;
 
 		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
@@ -315,7 +315,7 @@ public:
 			if (pitch_shifter == 1)
 			{
 				RubberBandStretcher::Options options = RubberBandStretcher::DefaultOptions | RubberBandStretcher::OptionProcessRealTime | RubberBandStretcher::OptionPitchHighQuality;
-				float ratios = 1. / (1. + (pitch_amount / 100.));
+				float ratios = 1. / (1. + (tempo_amount / 100.));
 			//	ratios = ((ratios - 0.5) * 1000 );
 				if (rubber)
 				{
@@ -336,15 +336,15 @@ public:
 					delete[] buffer_;
 					buffer_ = NULL;
 				}
-				buffer_ = new float[BUFFER_SIZE_RBTEMPO*m_ch + 1024 + 8192];
+				buffer_ = new float[BUFFER_SIZE_RBTEMPO*m_ch * 64];
 
 				rubber = new RubberBandStretcher(m_rate, m_ch, options, ratios, 1.0);
 				m_scratch = new float *[m_ch];
 				plugbuf = new float *[m_ch];
 				if (!rubber) return 0;
 				rubber->setMaxProcessSize(BUFFER_SIZE_RBTEMPO);
-				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RBTEMPO + 1024 + 8192];
-				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RBTEMPO + 1024 + 8192];
+				for (int c = 0; c < m_ch; ++c) plugbuf[c] = new float[BUFFER_SIZE_RBTEMPO * 64];
+				for (int c = 0; c < m_ch; ++c) m_scratch[c] = new float[BUFFER_SIZE_RBTEMPO *64];
 				st_enabled = true;
 			}
 			else if(pitch_shifter == 0)
@@ -364,7 +364,7 @@ public:
 				{
 					p_soundtouch->setSampleRate(m_rate);
 					p_soundtouch->setChannels(m_ch);
-					p_soundtouch->setTempoChange(pitch_amount);
+					p_soundtouch->setTempoChange(tempo_amount);
 					bool usequickseek = true;
 					bool useaafilter = true; //seems clearer without it
 					p_soundtouch->setSetting(SETTING_USE_QUICKSEEK, true);

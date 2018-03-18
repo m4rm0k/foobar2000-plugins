@@ -1,3 +1,7 @@
+0.30.3
+* Fixed crashes on extreme tempo changes
+* Fixed accuracy of tempo slider for Rubberband tempo algorithm
+
 0.30.2
 * Added finer granularity to tempo shifting operations.
 
