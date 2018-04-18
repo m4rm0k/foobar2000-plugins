@@ -101,6 +101,21 @@ public:
 
 	dsp_dmo_chorus(dsp_preset const & in) :m_rate( 0 ), m_ch( 0 ), m_ch_mask( 0 )
 	{
+
+
+		float params[kChorusNumParameters] =
+		{
+			0.5f,
+			0.2f,
+			0.11f,
+			1.0f,
+			0.75f,
+			(40.0f + 99.0f) / 198.0f,
+			0.8f
+		};
+		pfc::copy_array_loop_t(m_param, params, kChorusNumParameters);
+
+
 		parse_preset(m_param, enabled, in);
 		m_param[kChorusFeedback] = (m_param[kChorusFeedback] + 99.0f) / 198.0f;
 		enabled = true;
@@ -367,7 +382,7 @@ private:
 		msg.reset();
 		msg << "Feedback : ";
 		msg << pfc::format_int(100 * feedback) << " %";
-		::uSetDlgItemText(*this, IDC_CHORUSFEEBACKLAB, msg);
+		::uSetDlgItemText(*this, IDC_CHORUSFEEDBACKLAB, msg);
 
 	}
 
@@ -530,6 +545,19 @@ private:
 		slider_feedback = GetDlgItem(IDC_CHORUSFEEDBACK);
 		slider_feedback.SetRange(0, 100);
 
+
+		float params2[kChorusNumParameters] =
+		{
+			0.5f,
+			0.2f,
+			0.11f,
+			1.0f,
+			0.75f,
+			(40.0f + 99.0f) / 198.0f,
+			0.8f
+		};
+		pfc::copy_array_loop_t(params, params2,kChorusNumParameters);
+
 		ApplySettings();
 		return TRUE;
 	}
@@ -601,7 +629,7 @@ private:
 		msg.reset();
 		msg << "Feedback : ";
 		msg << pfc::format_int(100 * feedback) << " %";
-		::uSetDlgItemText(*this, IDC_CHORUSFEEBACKLAB, msg);
+		::uSetDlgItemText(*this, IDC_CHORUSFEEDBACKLAB, msg);
 
 	}
 	bool m_ownEchoUpdate;

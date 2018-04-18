@@ -1,0 +1,121 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_CHORUS DIALOGEX 0, 0, 285, 296
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Chorus DSP Configuration"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_CHORUSDELAYMS,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,12,260,24
+    CTEXT           "N ms",IDC_CHORUSDELAYLAB,90,48,104,8
+    CONTROL         "",IDC_CHORUSDRYWET,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,156,260,24
+    CTEXT           "N%",IDC_CHORUSDRYWETLAB,84,186,114,8
+    CONTROL         "",IDC_CHORUSDEPTHMS,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,60,260,24
+    CTEXT           "N ms",IDC_CHORUSDEPTHMSLAB,90,84,104,8
+    CONTROL         "",IDC_CHORUSLFOFREQ,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,102,260,24
+    CTEXT           "N ms",IDC_CHORUSLFOFREQLAB,96,138,104,8
+    DEFPUSHBUTTON   "OK",IDOK2,168,264,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL2,222,264,50,14
+    COMBOBOX        IDC_WAVETYPE,66,252,73,78,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Wave type",IDC_STATIC,12,252,48,8
+    COMBOBOX        IDC_PHASE,66,276,73,78,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Phase",IDC_STATIC,12,276,48,8
+    CONTROL         "",IDC_CHORUSFEEDBACK,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,12,204,260,24
+    CTEXT           "N%",IDC_CHORUSFEEDBACKLAB,84,234,114,8
+    CONTROL         "Enabled",IDC_CHORUSENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,168,282,102,12
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_CHORUS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 278
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 289
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CHORUS AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

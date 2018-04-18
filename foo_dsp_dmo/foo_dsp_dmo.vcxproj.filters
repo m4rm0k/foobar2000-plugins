@@ -5,10 +5,10 @@
     <ClCompile Include="dsp_dmo.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="foo_dsp_dmo.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="dmodsp.h" />
     <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="foo_dsp_dmo.rc" />
   </ItemGroup>
 </Project>
