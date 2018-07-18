@@ -1266,7 +1266,7 @@ static const GUID guid_tempoui
 class uielem_tempo : public CDialogImpl<uielem_tempo>, public ui_element_instance {
 public:
    uielem_tempo(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
-      pitch = 0.0; pitch_enabled = false;
+      pitch = 0.0; pitch_enabled = false; t_type = 0;
    }
    enum { IDD = IDD_PITCH_ELEMENT };
    enum
@@ -1321,9 +1321,9 @@ public:
 
 
       ret.m_min_width = MulDiv(450, DPI.cx, 96);
-      ret.m_min_height = MulDiv(100, DPI.cy, 96);
+      ret.m_min_height = MulDiv(120, DPI.cy, 96);
       ret.m_max_width = MulDiv(450, DPI.cx, 96);
-      ret.m_max_height = MulDiv(100, DPI.cy, 96);
+      ret.m_max_height = MulDiv(120, DPI.cy, 96);
 
       // Deal with WS_EX_STATICEDGE and alike that we might have picked from host
       ret.adjustForWindow(*this);
