@@ -12,7 +12,6 @@
 #define IDD_BANDPASS1                   107
 #define IDD_TEMPO                       108
 #define IDD_NORCH                       112
-#define IDD_PITCHTEMPO_ELEMENT          124
 #define IDC_SLIDER_MS                   1001
 #define IDC_SLIDER_LABEL_MS             1002
 #define IDC_SLIDER_AMP                  1003
@@ -81,6 +80,7 @@
 #define IDD_CHORUS1                     1060
 #define IDC_DISPLAY_PEAK                1061
 #define IDD_ECHO1                       1061
+#define IDD_PITCH_ELEMENT               1062
 #define IDC_IIRTYPE                     1063
 #define IDC_DISPLAY_RELEASE             1064
 #define IDC_PITCH                       1066
@@ -183,13 +183,10 @@
 #define IDC_PITCHINFO_UI                1184
 #define IDC_PITCH_UI                    1185
 #define IDC_PITCHENABLED_UI             1186
-#define IDC_TEMPOINFO_UI                1188
-#define IDC_TEMPO_UI                    1189
-#define IDC_TEMPOENABLED_UI             1190
 #define IDC_TEMPOTYPE_UI                1191
-#define IDC_RATEINFO_UI                 1192
-#define IDC_RATE_UI                     1193
-#define IDC_RATENABLED_UI               1194
+#define IDC_PITCH_EDIT                  1195
+#define IDC_PITCHINFO_UI2               1196
+#define IDC_TEMPOALG                    1197
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
@@ -198,7 +195,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        125
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1195
+#define _APS_NEXT_CONTROL_VALUE         1198
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

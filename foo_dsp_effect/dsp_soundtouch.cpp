@@ -15,6 +15,44 @@ static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, ds
 #define BUFFER_SIZE 2048
 #define BUFFER_SIZE_RBTEMPO 1024
 
+class CEditMod : public CWindowImpl<CEditMod, CEdit >
+{
+public:
+   BEGIN_MSG_MAP(CEditMod)
+      MESSAGE_HANDLER(WM_CHAR, OnChar)
+      MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
+   END_MSG_MAP()
+
+   CEditMod(HWND hWnd = NULL) { }
+   LRESULT OnChar(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+   {
+      switch (wParam)
+      {
+      case '\r': //Carriage return
+         return 0;
+         break;
+      }
+      return DefWindowProc(uMsg, wParam, lParam);
+   }
+   LRESULT OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+   {
+      switch (wParam)
+      {
+      case VK_RETURN:
+         ::PostMessage(m_parent, WM_USER, 0x1988, 0L);
+         return FALSE;
+      }
+      return DefWindowProc(uMsg, wParam, lParam);
+   }
+   void AttachToDlgItem(HWND parent)
+   {
+      m_parent = parent;
+   }
+private:
+   UINT m_dlgItem;
+   HWND m_parent;
+};
+
 class dsp_pitch : public dsp_impl_base
 {
 	SoundTouch * p_soundtouch;
@@ -480,26 +518,6 @@ class dsp_rate : public dsp_impl_base
 	float pitch_amount;
 	float* buffer_;
 	bool st_enabled;
-private:
-	void flushwrite()
-	{
-		if (p_soundtouch)
-		{
-			size_t out_samples_gen = BUFFER_SIZE;
-			p_soundtouch->flush();
-			while (out_samples_gen > 0)
-			{
-				out_samples_gen = p_soundtouch->receiveSamples(buffer_, out_samples_gen);
-				if (out_samples_gen != 0)
-				{
-					audio_chunk * out = insert_chunk(out_samples_gen*m_ch);
-					out->set_data(buffer_, out_samples_gen, m_ch, m_rate, m_ch_mask);
-				}
-			}
-			p_soundtouch->clear();
-
-		}
-	}
 
 public:
 	dsp_rate(dsp_preset const & in) : pitch_amount(0.00), m_rate(0), m_ch(0), m_ch_mask(0)
@@ -959,8 +977,852 @@ static void RunDSPConfigPopupTempo(const dsp_preset & p_data, HWND p_parent, dsp
 
 
 
+// {7448B6AD-7FBE-4F72-9F4F-A740620A9C38}
+static const GUID guid_pitchelement =
+{ 0x7448b6ad, 0x7fbe, 0x4f72,{ 0x9f, 0x4f, 0xa7, 0x40, 0x62, 0xa, 0x9c, 0x38 } };
 
 
+
+
+class uielem_pitch : public CDialogImpl<uielem_pitch> , public ui_element_instance {
+public:
+   uielem_pitch(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+      pitch = 0.0; pitch_enabled = false;
+   }
+   enum { IDD = IDD_PITCH_ELEMENT };
+   enum
+   {
+      pitchmin = 0,
+      pitchmax = 2400,
+
+   };
+   BEGIN_MSG_MAP_EX(uielem_pitch)
+      MSG_WM_INITDIALOG(OnInitDialog)
+      COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
+      MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+      MSG_WM_HSCROLL(OnScroll)
+   END_MSG_MAP()
+
+
+
+   void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL);
+   }
+   HWND get_wnd() { return m_hWnd; }
+   void set_configuration(ui_element_config::ptr config) {
+      shit = parseConfig(config);
+      if (m_hWnd != NULL) {
+         ApplySettings();
+      }
+      m_callback->on_min_max_info_change();
+   }
+   ui_element_config::ptr get_configuration() { return makeConfig(); }
+   static GUID g_get_guid() {
+      return guid_pitchelement;
+   }
+   static void g_get_name(pfc::string_base & out) { out = "Pitch"; }
+   static ui_element_config::ptr g_get_default_configuration() {
+      return makeConfig(true);
+   }
+   static const char * g_get_description() { return "Changes the pitch of the current track."; }
+   static GUID g_get_subclass() {
+      return ui_element_subclass_dsp;
+   }
+
+   ui_element_min_max_info get_min_max_info() {
+      ui_element_min_max_info ret;
+
+      // Note that we play nicely with separate horizontal & vertical DPI.
+      // Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+      CSize DPI = QueryScreenDPIEx(*this);
+
+      if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+         DPI = CSize(96, 96);
+      }
+
+
+      ret.m_min_width = MulDiv(450, DPI.cx, 96);
+      ret.m_min_height = MulDiv(80, DPI.cy, 96);
+      ret.m_max_width = MulDiv(450, DPI.cx, 96);
+      ret.m_max_height = MulDiv(80, DPI.cy, 96);
+
+      // Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+      ret.adjustForWindow(*this);
+
+      return ret;
+   }
+private:
+   
+
+
+   void SetPitchEnabled(bool state) { m_buttonPitchEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+   bool IsPitchEnabled() { return m_buttonPitchEnabled == NULL || m_buttonPitchEnabled.GetCheck() == BST_CHECKED; }
+
+   void PitchDisable() {
+      static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pitch);
+   }
+
+   double clamp(double x, double upper, double lower)
+   {
+      return min(upper, max(x, lower));
+   }
+   void PitchEnable(float pitch, bool enabled) {
+      dsp_preset_impl preset;
+      dsp_pitch::make_preset(pitch, enabled, preset);
+      static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+   }
+
+   void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      if (IsPitchEnabled()) {
+         GetConfig();
+         dsp_preset_impl preset;
+         dsp_pitch::make_preset(pitch, pitch_enabled, preset);
+         //yes change api;
+         static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+      }
+      else {
+         static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pitch);
+      }
+
+   }
+   LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+   {
+      if (wParam == 0x1988)
+      {
+         CString sWindowText;
+         pitch_edit.GetWindowText(sWindowText);
+         float pitch2 = _ttof(sWindowText);
+         pitch2 = clamp(pitch2, 12.0, -12.0);
+         if (pitch_s != sWindowText)
+         {
+            pitch = pitch2;
+            float pitch3 = pitch * 100.00;
+            slider_pitch.SetPos((double)(pitch3 + 1200));
+            OnConfigChanged();
+         }
+      }
+      return 0;
+   }
+
+   void OnScroll(UINT scrollID, int pos, CWindow window)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_pitch.m_hWnd)
+         {
+            PitchEnable(pitch, pitch_enabled);
+         }
+      }
+   }
+
+   void OnChange(UINT, int id, CWindow)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         OnConfigChanged();
+      }
+   }
+
+   //set settings if from another control
+   void ApplySettings()
+   {
+      dsp_preset_impl preset;
+      if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pitch, preset)) {
+         SetPitchEnabled(true);
+         dsp_pitch::parse_preset(pitch, pitch_enabled, preset);
+         SetPitchEnabled(pitch_enabled);
+         SetConfig();
+      }
+      else {
+         SetPitchEnabled(false);
+         SetConfig();
+      }
+   }
+
+   void OnConfigChanged() {
+      if (IsPitchEnabled()) {
+         PitchEnable(pitch, pitch_enabled);
+      }
+      else {
+         PitchDisable();
+      }
+   }
+
+
+   void GetConfig()
+   {
+      float pitch_sl = slider_pitch.GetPos() - 1200;
+      pitch = pitch_sl / 100.00;
+      pitch_enabled = IsPitchEnabled();
+
+      RefreshLabel(pitch);
+
+
+   }
+
+   void SetConfig()
+   {
+      float pitch2 = pitch * 100.00;
+      slider_pitch.SetPos((double)(pitch2 + 1200));
+
+      RefreshLabel(pitch2 / 100);
+
+   }
+
+   void RefreshLabel(float  pitch)
+   {
+      pfc::string_formatter msg;
+      msg << "Pitch: ";
+      msg << (pitch < 0 ? "" : "+");
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI, msg);
+      msg.reset();
+      msg << pfc::format_float(pitch, 0, 2);
+      CString sWindowText;
+      sWindowText = msg.c_str();
+      pitch_s = sWindowText;
+      pitch_edit.SetWindowText(sWindowText);
+      msg.reset();
+      msg << "semitones";
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI2, msg);
+
+   }
+
+   static uint32_t parseConfig(ui_element_config::ptr cfg) {
+      ::ui_element_config_parser in(cfg);
+      uint32_t flags; in >> flags;
+      return 0;
+
+   }
+   static ui_element_config::ptr makeConfig(bool init = false) {
+      ui_element_config_builder out;
+
+      if (init)
+      {
+         uint32_t crap = 1;
+         out << crap;
+      }
+      else
+      {
+         uint32_t crap = 2;
+         out << crap;
+      }
+      return out.finish(g_get_guid());
+   }
+
+   BOOL OnInitDialog(CWindow hwnd, LPARAM) {
+      pitch_edit.AttachToDlgItem(m_hWnd);
+      pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
+      slider_pitch = GetDlgItem(IDC_PITCH_UI);
+      m_buttonPitchEnabled = GetDlgItem(IDC_PITCHENABLED_UI);
+      slider_pitch.SetRange(0, pitchmax);
+      CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+      w.ShowWindow(SW_HIDE);
+      w = GetDlgItem(IDC_TEMPOALG);
+      w.ShowWindow(SW_HIDE);
+      m_ownPitchUpdate = false;
+      ApplySettings();
+      return FALSE;
+   }
+
+
+   uint32_t shit;
+
+
+   float  pitch;
+   bool pitch_enabled;
+   CTrackBarCtrl slider_pitch;
+   CButton m_buttonPitchEnabled;
+   CEditMod pitch_edit;
+   CString pitch_s;
+   bool m_ownPitchUpdate;
+protected:
+   const ui_element_instance_callback::ptr m_callback;
+};
+
+class myElem2 : public  ui_element_impl_withpopup< uielem_pitch > {
+   bool get_element_group(pfc::string_base & p_out)
+   {
+      p_out = "Effect DSP";
+      return true;
+   }
+   bool get_menu_command_description(pfc::string_base & out) {
+      out = "Opens a window for pitch control.";
+      return true;
+   }
+};
+static service_factory_single_t<myElem2> g_myElemFactory2;
+
+// {C9C585C0-FC4F-42A2-B475-8176041DDC4C}
+static const GUID guid_tempoui
+{ 0xc9c585c0, 0xfc4f, 0x42a2,{ 0xb4, 0x75, 0x81, 0x76, 0x4, 0x1d, 0xdc, 0x4c } };
+
+
+class uielem_tempo : public CDialogImpl<uielem_tempo>, public ui_element_instance {
+public:
+   uielem_tempo(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+      pitch = 0.0; pitch_enabled = false;
+   }
+   enum { IDD = IDD_PITCH_ELEMENT };
+   enum
+   {
+      pitchmin = 0,
+      pitchmax = 19000,
+
+   };
+   BEGIN_MSG_MAP_EX(uielem_pitch)
+      MSG_WM_INITDIALOG(OnInitDialog)
+      COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
+      MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+      MSG_WM_HSCROLL(OnScroll)
+      END_MSG_MAP()
+
+
+
+   void initialize_window(HWND parent) {
+      WIN32_OP(Create(parent) != NULL);
+   }
+   HWND get_wnd() { return m_hWnd; }
+   void set_configuration(ui_element_config::ptr config) {
+      shit = parseConfig(config);
+      if (m_hWnd != NULL) {
+         ApplySettings();
+      }
+      m_callback->on_min_max_info_change();
+   }
+   ui_element_config::ptr get_configuration() { return makeConfig(); }
+   static GUID g_get_guid() {
+      return guid_tempoui;
+   }
+   static void g_get_name(pfc::string_base & out) { out = "Tempo"; }
+   static ui_element_config::ptr g_get_default_configuration() {
+      return makeConfig(true);
+   }
+   static const char * g_get_description() { return "Changes the tempo of the current track."; }
+   static GUID g_get_subclass() {
+      return ui_element_subclass_dsp;
+   }
+
+   ui_element_min_max_info get_min_max_info() {
+      ui_element_min_max_info ret;
+
+      // Note that we play nicely with separate horizontal & vertical DPI.
+      // Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+      CSize DPI = QueryScreenDPIEx(*this);
+
+      if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+         DPI = CSize(96, 96);
+      }
+
+
+      ret.m_min_width = MulDiv(450, DPI.cx, 96);
+      ret.m_min_height = MulDiv(100, DPI.cy, 96);
+      ret.m_max_width = MulDiv(450, DPI.cx, 96);
+      ret.m_max_height = MulDiv(100, DPI.cy, 96);
+
+      // Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+      ret.adjustForWindow(*this);
+
+      return ret;
+   }
+private:
+
+
+
+   void SetPitchEnabled(bool state) { m_buttonPitchEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+   bool IsPitchEnabled() { return m_buttonPitchEnabled == NULL || m_buttonPitchEnabled.GetCheck() == BST_CHECKED; }
+
+   void PitchDisable() {
+      static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_tempo);
+   }
+
+   double clamp(double x, double upper, double lower)
+   {
+      return min(upper, max(x, lower));
+   }
+   void PitchEnable(float pitch, bool enabled) {
+      dsp_preset_impl preset;
+      dsp_tempo::make_preset(pitch,t_type, enabled, preset);
+      static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+   }
+
+   void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      if (IsPitchEnabled()) {
+         GetConfig();
+         dsp_preset_impl preset;
+         dsp_tempo::make_preset(pitch,t_type, pitch_enabled, preset);
+         //yes change api;
+         static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+      }
+      else {
+         static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_tempo);
+      }
+
+   }
+   LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+   {
+      if (wParam == 0x1988)
+      {
+         CString sWindowText;
+         pitch_edit.GetWindowText(sWindowText);
+         float pitch2 = _ttof(sWindowText);
+         pitch2 = clamp(pitch2, 95.0, -95.0);
+         if (pitch_s != sWindowText)
+         {
+            pitch = pitch2;
+            float pitch3 = pitch * 100.00;
+            t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
+            slider_pitch.SetPos((double)(pitch3 + 9500));
+            OnConfigChanged();
+         }
+      }
+      return 0;
+   }
+
+   void OnScroll(UINT scrollID, int pos, CWindow window)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_pitch.m_hWnd)
+         {
+            PitchEnable(pitch, pitch_enabled);
+         }
+      }
+   }
+
+   void OnChange(UINT, int id, CWindow)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         OnConfigChanged();
+      }
+   }
+
+   //set settings if from another control
+   void ApplySettings()
+   {
+      dsp_preset_impl preset;
+      if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_tempo, preset)) {
+         SetPitchEnabled(true);
+         dsp_tempo::parse_preset(pitch,t_type, pitch_enabled, preset);
+         SetPitchEnabled(pitch_enabled);
+         SetConfig();
+      }
+      else {
+         SetPitchEnabled(false);
+         SetConfig();
+      }
+   }
+
+   void OnConfigChanged() {
+      if (IsPitchEnabled()) {
+         PitchEnable(pitch, pitch_enabled);
+      }
+      else {
+         PitchDisable();
+      }
+   }
+
+
+   void GetConfig()
+   {
+      float tempos = slider_pitch.GetPos() - 9500;
+      pitch = tempos / 100.;
+      t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
+      pitch_enabled = IsPitchEnabled();
+
+      RefreshLabel(pitch);
+
+
+   }
+
+   void SetConfig()
+   {
+      float tempo2 = pitch * 100;
+      CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+      ::SendMessage(w, CB_SETCURSEL, t_type, 0);
+      slider_pitch.SetPos((double)(tempo2 + 9500));
+
+      RefreshLabel(tempo2 / 100);
+
+   }
+
+   void RefreshLabel(float  pitch)
+   {
+      pfc::string_formatter msg;
+      msg << "Tempo: ";
+      msg << (pitch < 0 ? "" : "+");
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI, msg);
+      msg.reset();
+      msg << pfc::format_float(pitch, 0, 2);
+      CString sWindowText;
+      sWindowText = msg.c_str();
+      pitch_s = sWindowText;
+      pitch_edit.SetWindowText(sWindowText);
+      msg.reset();
+      msg << "%";
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI2, msg);
+
+   }
+
+   static uint32_t parseConfig(ui_element_config::ptr cfg) {
+      ::ui_element_config_parser in(cfg);
+      uint32_t flags; in >> flags;
+      return 0;
+
+   }
+   static ui_element_config::ptr makeConfig(bool init = false) {
+      ui_element_config_builder out;
+
+      if (init)
+      {
+         uint32_t crap = 1;
+         out << crap;
+      }
+      else
+      {
+         uint32_t crap = 2;
+         out << crap;
+      }
+      return out.finish(g_get_guid());
+   }
+
+   BOOL OnInitDialog(CWindow hwnd, LPARAM) {
+      pitch_edit.AttachToDlgItem(m_hWnd);
+      pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
+      slider_pitch = GetDlgItem(IDC_PITCH_UI);
+      m_buttonPitchEnabled = GetDlgItem(IDC_PITCHENABLED_UI);
+      slider_pitch.SetRange(0, pitchmax);
+      CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+      w.ShowWindow(SW_SHOW);
+      uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
+      uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
+      w = GetDlgItem(IDC_TEMPOALG);
+      w.ShowWindow(SW_SHOW);
+      m_ownPitchUpdate = false;
+      ApplySettings();
+      return FALSE;
+   }
+
+
+   uint32_t shit;
+
+
+   float  pitch;
+   int t_type;
+   bool pitch_enabled;
+   CTrackBarCtrl slider_pitch;
+   CButton m_buttonPitchEnabled;
+   CEditMod pitch_edit;
+   CString pitch_s;
+   bool m_ownPitchUpdate;
+protected:
+   const ui_element_instance_callback::ptr m_callback;
+};
+
+class myElem3 : public  ui_element_impl_withpopup< uielem_tempo > {
+   bool get_element_group(pfc::string_base & p_out)
+   {
+      p_out = "Effect DSP";
+      return true;
+   }
+   bool get_menu_command_description(pfc::string_base & out) {
+      out = "Opens a window for tempo control.";
+      return true;
+   }
+};
+static service_factory_single_t<myElem3> g_myElemFactory3;
+
+// {8D49FEB4-FC5A-4D63-961D-5D86AA8610F7}
+static const GUID guid_rateui =
+{ 0x8d49feb4, 0xfc5a, 0x4d63,{ 0x96, 0x1d, 0x5d, 0x86, 0xaa, 0x86, 0x10, 0xf7 } };
+
+
+class uielem_rate : public CDialogImpl<uielem_rate>, public ui_element_instance {
+public:
+   uielem_rate(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+      pitch = 0.0; pitch_enabled = false;
+   }
+   enum { IDD = IDD_PITCH_ELEMENT };
+   enum
+   {
+   };
+   BEGIN_MSG_MAP_EX(uielem_rate)
+      MSG_WM_INITDIALOG(OnInitDialog)
+      COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
+      MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+      MSG_WM_HSCROLL(OnScroll)
+      END_MSG_MAP()
+
+
+
+   void initialize_window(HWND parent) {
+      WIN32_OP(Create(parent) != NULL);
+   }
+   HWND get_wnd() { return m_hWnd; }
+   void set_configuration(ui_element_config::ptr config) {
+      shit = parseConfig(config);
+      if (m_hWnd != NULL) {
+         ApplySettings();
+      }
+      m_callback->on_min_max_info_change();
+   }
+   ui_element_config::ptr get_configuration() { return makeConfig(); }
+   static GUID g_get_guid() {
+      return guid_rateui;
+   }
+   static void g_get_name(pfc::string_base & out) { out = "Playback Rate"; }
+   static ui_element_config::ptr g_get_default_configuration() {
+      return makeConfig(true);
+   }
+   static const char * g_get_description() { return "Changes the playback rate of the current track."; }
+   static GUID g_get_subclass() {
+      return ui_element_subclass_dsp;
+   }
+
+   ui_element_min_max_info get_min_max_info() {
+      ui_element_min_max_info ret;
+
+      // Note that we play nicely with separate horizontal & vertical DPI.
+      // Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+      CSize DPI = QueryScreenDPIEx(*this);
+
+      if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+         DPI = CSize(96, 96);
+      }
+
+
+      ret.m_min_width = MulDiv(450, DPI.cx, 96);
+      ret.m_min_height = MulDiv(80, DPI.cy, 96);
+      ret.m_max_width = MulDiv(450, DPI.cx, 96);
+      ret.m_max_height = MulDiv(80, DPI.cy, 96);
+
+      // Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+      ret.adjustForWindow(*this);
+
+      return ret;
+   }
+private:
+
+
+
+   void SetPitchEnabled(bool state) { m_buttonPitchEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+   bool IsPitchEnabled() { return m_buttonPitchEnabled == NULL || m_buttonPitchEnabled.GetCheck() == BST_CHECKED; }
+
+   void PitchDisable() {
+      static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pbrate);
+   }
+
+   double clamp(double x, double upper, double lower)
+   {
+      return min(upper, max(x, lower));
+   }
+   void PitchEnable(float pitch, bool enabled) {
+      dsp_preset_impl preset;
+      dsp_rate::make_preset(pitch, enabled, preset);
+      static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+   }
+
+   void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      if (IsPitchEnabled()) {
+         GetConfig();
+         dsp_preset_impl preset;
+         dsp_rate::make_preset(pitch, pitch_enabled, preset);
+         //yes change api;
+         static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+      }
+      else {
+         static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pbrate);
+      }
+
+   }
+   LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+   {
+      if (wParam == 0x1988)
+      {
+         CString sWindowText;
+         pitch_edit.GetWindowText(sWindowText);
+         float pitch2 = _ttof(sWindowText);
+         pitch2 = clamp(pitch2, 100.0, -50.0);
+         pitch2 = round(pitch2);
+         if (pitch_s != sWindowText)
+         {
+            pitch = pitch2;
+            slider_pitch.SetPos((double)(pitch + 50));
+            OnConfigChanged();
+         }
+      }
+      return 0;
+   }
+
+   void OnScroll(UINT scrollID, int pos, CWindow window)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_pitch.m_hWnd)
+         {
+            PitchEnable(pitch, pitch_enabled);
+         }
+      }
+   }
+
+   void OnChange(UINT, int id, CWindow)
+   {
+      pfc::vartoggle_t<bool> ownUpdate(m_ownPitchUpdate, true);
+      GetConfig();
+      if (IsPitchEnabled())
+      {
+
+         OnConfigChanged();
+      }
+   }
+
+   //set settings if from another control
+   void ApplySettings()
+   {
+      dsp_preset_impl preset;
+      if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pitch, preset)) {
+         SetPitchEnabled(true);
+         dsp_rate::parse_preset(pitch, pitch_enabled, preset);
+         SetPitchEnabled(pitch_enabled);
+         SetConfig();
+      }
+      else {
+         SetPitchEnabled(false);
+         SetConfig();
+      }
+   }
+
+   void OnConfigChanged() {
+      if (IsPitchEnabled()) {
+         PitchEnable(pitch, pitch_enabled);
+      }
+      else {
+         PitchDisable();
+      }
+   }
+
+
+   void GetConfig()
+   {
+      float pitch_sl = slider_pitch.GetPos() - 50;
+      pitch = pitch_sl;
+      pitch_enabled = IsPitchEnabled();
+
+      RefreshLabel(pitch);
+
+
+   }
+
+   void SetConfig()
+   {
+      slider_pitch.SetPos((double)(pitch + 50));
+      RefreshLabel(pitch);
+
+   }
+
+   void RefreshLabel(float  pitch)
+   {
+      pfc::string_formatter msg;
+      msg << "PB Rate: ";
+      msg << (pitch < 0 ? "" : "+");
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI, msg);
+      msg.reset();
+      msg << pfc::format_int(pitch);
+      CString sWindowText;
+      sWindowText = msg.c_str();
+      pitch_s = sWindowText;
+      pitch_edit.SetWindowText(sWindowText);
+      msg.reset();
+      msg << "%";
+      ::uSetDlgItemText(*this, IDC_PITCHINFO_UI2, msg);
+
+   }
+
+   static uint32_t parseConfig(ui_element_config::ptr cfg) {
+      ::ui_element_config_parser in(cfg);
+      uint32_t flags; in >> flags;
+      return 0;
+
+   }
+   static ui_element_config::ptr makeConfig(bool init = false) {
+      ui_element_config_builder out;
+
+      if (init)
+      {
+         uint32_t crap = 1;
+         out << crap;
+      }
+      else
+      {
+         uint32_t crap = 2;
+         out << crap;
+      }
+      return out.finish(g_get_guid());
+   }
+
+   BOOL OnInitDialog(CWindow hwnd, LPARAM) {
+      pitch_edit.AttachToDlgItem(m_hWnd);
+      pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
+      slider_pitch = GetDlgItem(IDC_PITCH_UI);
+      m_buttonPitchEnabled = GetDlgItem(IDC_PITCHENABLED_UI);
+      slider_pitch.SetRange(0, 150);
+      CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
+      w.ShowWindow(SW_HIDE);
+      w = GetDlgItem(IDC_TEMPOALG);
+      w.ShowWindow(SW_HIDE);
+      m_ownPitchUpdate = false;
+      ApplySettings();
+      return FALSE;
+   }
+
+
+   uint32_t shit;
+
+
+   float  pitch;
+   bool pitch_enabled;
+   CTrackBarCtrl slider_pitch;
+   CButton m_buttonPitchEnabled;
+   CEditMod pitch_edit;
+   CString pitch_s;
+   bool m_ownPitchUpdate;
+protected:
+   const ui_element_instance_callback::ptr m_callback;
+};
+
+class myElem : public  ui_element_impl_withpopup< uielem_rate > {
+   bool get_element_group(pfc::string_base & p_out)
+   {
+      p_out = "Effect DSP";
+      return true;
+   }
+   bool get_menu_command_description(pfc::string_base & out) {
+      out = "Opens a window for playback rate control.";
+      return true;
+   }
+};
+static service_factory_single_t<myElem> g_myElemFactory;
+
+
+
+/*
 // {69CD9A73-7407-430C-A099-5938007D61F9}
 static const GUID guid_pitchtemporateui =
 { 0x69cd9a73, 0x7407, 0x430c,{ 0xa0, 0x99, 0x59, 0x38, 0x0, 0x7d, 0x61, 0xf9 } };
@@ -1368,18 +2230,12 @@ class myElem : public  ui_element_impl_withpopup< uielem_pitchtempo > {
 		p_out = "Effect DSP";
 		return true;
 	}
-	/*GUID get_menu_command_id() {
-    return guid_pitchtempomenu;
-	}*/
 	bool get_menu_command_description(pfc::string_base & out) {
 		out = "Opens a window for pitch/tempo/playback rate control.";
 		return true;
 	}
 };
-static service_factory_single_t<myElem> g_myElemFactory;
-
-//static service_factory_single_t< ui_element_impl_withpopup< uielem_pitchtempo > > g_CDialogUIElem_factory;
-
+static service_factory_single_t<myElem> g_myElemFactory;*/
 
 static dsp_factory_t<dsp_tempo> g_dsp_tempo_factory;
 static dsp_factory_t<dsp_pitch> g_dsp_pitch_factory;
