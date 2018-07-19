@@ -1,6 +1,7 @@
 0.31
 * Rewrote pitch/tempo/playback rate UI elements.
 -  Now adds user definable pitch/tempo/playback rates
+
 0.30.3
 * Fixed crashes on extreme tempo changes
 * Fixed accuracy of tempo slider for Rubberband tempo algorithm
