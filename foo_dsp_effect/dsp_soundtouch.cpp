@@ -1697,7 +1697,7 @@ private:
    void ApplySettings()
    {
       dsp_preset_impl preset;
-      if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pitch, preset)) {
+      if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pbrate, preset)) {
          SetPitchEnabled(true);
          dsp_rate::parse_preset(pitch, pitch_enabled, preset);
          SetPitchEnabled(pitch_enabled);
