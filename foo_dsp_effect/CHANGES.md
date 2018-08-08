@@ -1,6 +1,10 @@
-0.31
+0.32
+* Pitch/tempo/rate UI elements now have the edit box focused first.
+* Added finer granularity to playback shift DSP.
+
+0.31.x
 * Rewrote pitch/tempo/playback rate UI elements.
--  Now adds user definable pitch/tempo/playback rates
+  Now they have directly editable pitch/tempo/rate
 
 0.30.3
 * Fixed crashes on extreme tempo changes

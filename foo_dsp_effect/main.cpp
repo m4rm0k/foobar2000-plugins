@@ -1,7 +1,7 @@
 #include "../SDK/foobar2000.h"
 #include "SoundTouch/SoundTouch.h"
 #include "dsp_guids.h"
-#define MYVERSION "0.31.1"
+#define MYVERSION "0.32"
 
 static pfc::string_formatter g_get_component_about()
 {
@@ -12,7 +12,7 @@ static pfc::string_formatter g_get_component_about()
 	about << "Using SoundTouch library version "<< SOUNDTOUCH_VERSION << "\n";
 	about << "SoundTouch (c) Olli Parviainen\n";
 	about << "\n";
-	about << "License: https://goo.gl/5BhxXc";
+	about << "License: https://github.com/mudlord/foobar2000-plugins/blob/master/LICENSE.md";
 	return about;
 }
 
