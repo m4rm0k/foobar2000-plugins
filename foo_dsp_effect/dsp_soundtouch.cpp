@@ -906,7 +906,7 @@ public:
 	enum
 	{
 		pitchmin = 0,
-		tempomax = 16000
+		tempomax = 19000
 
 	};
 	BEGIN_MSG_MAP(CMyDSPPopup)
@@ -934,7 +934,7 @@ private:
 			dsp_tempo::parse_preset(pitch, pitch_type, enabled, m_initData);
 			::SendMessage(w, CB_SETCURSEL, pitch_type, 0);
 			float tempo2 = pitch * 100;
-			slider_drytime.SetPos((double)(tempo2 + 8000));
+			slider_drytime.SetPos((double)(tempo2 + 9500));
 			RefreshLabel(pitch);
 		}
 		return TRUE;
@@ -949,7 +949,7 @@ private:
 	void OnChange(UINT, int id, CWindow)
 	{
 		float pitch;
-		float tempos = slider_drytime.GetPos() - 8000;
+		float tempos = slider_drytime.GetPos() - 9500;
 		pitch = tempos / 100.;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
@@ -964,7 +964,7 @@ private:
 	void OnScroll(UINT scrollID, int id, CWindow window)
 	{
 		float pitch;
-		float tempos = slider_drytime.GetPos() - 8000;
+		float tempos = slider_drytime.GetPos() - 9500;
 		pitch = tempos / 100.;
 		int p_type; //filter type
 		p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
@@ -1294,10 +1294,10 @@ public:
    enum
    {
       pitchmin = 0,
-      pitchmax = 16000,
+      pitchmax = 19000,
 
    };
-   BEGIN_MSG_MAP_EX(uielem_pitch)
+   BEGIN_MSG_MAP_EX(uielem_tempo)
       MSG_WM_INITDIALOG(OnInitDialog)
       COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
       MESSAGE_HANDLER(WM_USER, OnEditControlChange)
@@ -1394,13 +1394,13 @@ private:
          CString sWindowText;
          pitch_edit.GetWindowText(sWindowText);
          float pitch2 = _ttof(sWindowText);
-         pitch2 = clamp(pitch2, 80.0, -80.0);
+         pitch2 = clamp(pitch2, 95.0, -95.0);
          if (pitch_s != sWindowText)
          {
             pitch = pitch2;
             float pitch3 = pitch * 100.00;
             t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
-            slider_pitch.SetPos((double)(pitch3 + 8000));
+            slider_pitch.SetPos((double)(pitch3 + 9500));
             OnConfigChanged();
          }
       }
@@ -1460,7 +1460,7 @@ private:
 
    void GetConfig()
    {
-      float tempos = slider_pitch.GetPos() - 8000;
+      float tempos = slider_pitch.GetPos() - 9500;
       pitch = tempos / 100.;
       t_type = SendDlgItemMessage(IDC_TEMPOTYPE_UI, CB_GETCURSEL);
       pitch_enabled = IsPitchEnabled();
@@ -1475,7 +1475,7 @@ private:
       float tempo2 = pitch * 100;
       CWindow w = GetDlgItem(IDC_TEMPOTYPE_UI);
       ::SendMessage(w, CB_SETCURSEL, t_type, 0);
-      slider_pitch.SetPos((double)(tempo2 + 8000));
+      slider_pitch.SetPos((double)(tempo2 + 9500));
 
       RefreshLabel(tempo2 / 100);
 
