@@ -768,7 +768,7 @@ public:
     {
         ::RunConfigPopupCompressor(p_data, p_parent, p_callback);
     }
-    static bool g_have_config_popup() { return false; }
+    static bool g_have_config_popup() { return true; }
 
     static void make_preset(float params[kCompNumParameters], bool enabled, dsp_preset & out)
     {
@@ -850,7 +850,6 @@ private:
         m_buttonEchoEnabled = GetDlgItem(IDC_CHORUSENABLE);
         m_buttonEchoEnabled.ShowWindow(SW_HIDE);
 
-
         slider_gain = GetDlgItem(IDC_COMPRESSORGAIN);
         slider_gain.SetRange(0, 100);
         slider_attack = GetDlgItem(IDC_COMPRESSORATTACK);
@@ -864,26 +863,21 @@ private:
         slider_predelay = GetDlgItem(IDC_COMPRESSORPREDELAY);
         slider_predelay.SetRange(0, 100);
 
-
-        {
-            bool enabled;
-            dsp_dmo_chorus::parse_preset(params, enabled, m_initData);
-            slider_gain.SetPos((double)(100 * params[kCompGain]));
-            slider_attack.SetPos((double)(100 * params[kCompAttack]));
-            slider_release.SetPos((double)(100 * params[kCompRelease]));
-            slider_threshold.SetPos((double)(100 * params[kCompThreshold]));
-            slider_ratio.SetPos((double)(100 * params[kCompRatio]));
-            slider_predelay.SetPos((double)(100 * params[kCompPredelay]));
-            float gain = -60.0f + params[kCompGain] * 120.0f;
-            float attack = 0.01f + params[kCompAttack] * 499.99f;
-            float release = 50.0f + params[kCompRelease] * 2950.0f;
-            float thres = -60.0f + params[kCompThreshold] * 60.0f;
-            float ratio = 1.0f + params[kCompRatio] * 99.0f;
-            float predelay = params[kCompPredelay] * 4.0f;
-
-            RefreshLabel(gain, attack, release, thres, ratio, predelay);
-        }
-
+        bool enabled;
+        dsp_dmo_compressor::parse_preset(params, enabled, m_initData);
+        slider_gain.SetPos((double)(100 * params[kCompGain]));
+        slider_attack.SetPos((double)(100 * params[kCompAttack]));
+        slider_release.SetPos((double)(100 * params[kCompRelease]));
+        slider_threshold.SetPos((double)(100 * params[kCompThreshold]));
+        slider_ratio.SetPos((double)(100 * params[kCompRatio]));
+        slider_predelay.SetPos((double)(100 * params[kCompPredelay]));
+        float gain = -60.0f + params[kCompGain] * 120.0f;
+        float attack = 0.01f + params[kCompAttack] * 499.99f;
+        float release = 50.0f + params[kCompRelease] * 2950.0f;
+        float thres = -60.0f + params[kCompThreshold] * 60.0f;
+        float ratio = 1.0f + params[kCompRatio] * 99.0f;
+        float predelay = params[kCompPredelay] * 4.0f;
+        RefreshLabel(gain, attack, release, thres, ratio, predelay);
         return TRUE;
     }
 
