@@ -1,3 +1,6 @@
+0.33
+* Fix playbackrate controls.
+
 0.32
 * Pitch/tempo/rate UI elements now have the edit box focused first.
 * Added finer granularity to playback shift DSP.
