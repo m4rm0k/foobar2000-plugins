@@ -1679,11 +1679,12 @@ private:
          pitch_edit.GetWindowText(sWindowText);
          float pitch2 = _ttof(sWindowText);
          pitch2 = clamp(pitch2, 100.0, -50.0);
-         pitch2 = round(pitch2);
+       //  pitch2 = round(pitch2);
          if (pitch_s != sWindowText)
          {
             pitch = pitch2;
-            slider_pitch.SetPos((double)(pitch + 5000));
+            float pitch3 = (pitch*100) + 5000;
+            slider_pitch.SetPos((double)(pitch3));
             OnConfigChanged();
          }
       }
@@ -1754,7 +1755,7 @@ private:
 
    void SetConfig()
    {
-      slider_pitch.SetPos((double)(pitch + 5000));
+      slider_pitch.SetPos((double)((pitch*100) + 5000));
       RefreshLabel(pitch);
 
    }
