@@ -1,3 +1,6 @@
+0.34
+* Minor change to subclassed control for pitch/rate/tempo editing.
+
 0.33
 * Fix playbackrate controls.
 

@@ -20,7 +20,6 @@ class CEditMod : public CWindowImpl<CEditMod, CEdit >
 public:
    BEGIN_MSG_MAP(CEditMod)
       MESSAGE_HANDLER(WM_CHAR, OnChar)
-      MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
    END_MSG_MAP()
 
    CEditMod(HWND hWnd = NULL) { }
@@ -29,18 +28,9 @@ public:
       switch (wParam)
       {
       case '\r': //Carriage return
+         ::PostMessage(m_parent, WM_USER, 0x1988, 0L);
          return 0;
          break;
-      }
-      return DefWindowProc(uMsg, wParam, lParam);
-   }
-   LRESULT OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
-   {
-      switch (wParam)
-      {
-      case VK_RETURN:
-         ::PostMessage(m_parent, WM_USER, 0x1988, 0L);
-         return FALSE;
       }
       return DefWindowProc(uMsg, wParam, lParam);
    }
@@ -1636,6 +1626,8 @@ public:
 
       return ret;
    }
+
+
 private:
 
 
@@ -1800,6 +1792,7 @@ private:
       return out.finish(g_get_guid());
    }
 
+ 
    BOOL OnInitDialog(CWindow hwnd, LPARAM) {
       pitch_edit.AttachToDlgItem(m_hWnd);
       pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
