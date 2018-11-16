@@ -709,7 +709,7 @@ public:
 	};
 	BEGIN_MSG_MAP( CMyDSPPopup )
 		MSG_WM_INITDIALOG( OnInitDialog )
-		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
+		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnOKButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
         COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset)
 		COMMAND_HANDLER_EX(IDC_PITCHTYPE, CBN_SELCHANGE, OnChange)
@@ -778,6 +778,29 @@ private:
 		return TRUE;
 	}
 
+
+    void GetEditText()
+    {
+        CString sWindowText;
+        pitch_edit.GetWindowText(sWindowText);
+        float pitch2 = _ttof(sWindowText);
+        pitch2 = clamp_ml(pitch2, 12.0, -12.0);
+        if (pitch_s != sWindowText)
+        {
+
+            float pitch3 = pitch2 * 100.00;
+            slider_drytime.SetPos((double)(pitch3 + 1200));
+            dsp_preset_impl preset;
+            dsp_pitch::make_preset(pitch2, true, preset);
+            m_callback.on_preset_changed(preset);
+        }
+    }
+    void OnOKButton(UINT, int id, CWindow)
+    {
+        GetEditText();
+        EndDialog(id);
+    }
+
 	void OnButton( UINT, int id, CWindow )
 	{
 		EndDialog( id );
@@ -821,19 +844,7 @@ private:
     {
         if (wParam == 0x1988)
         {
-            CString sWindowText;
-            pitch_edit.GetWindowText(sWindowText);
-            float pitch2 = _ttof(sWindowText);
-            pitch2 = clamp_ml(pitch2, 12.0, -12.0);
-            if (pitch_s != sWindowText)
-            {
-                
-                float pitch3 = pitch2 * 100.00;
-                slider_drytime.SetPos((double)(pitch3 + 1200));
-                dsp_preset_impl preset;
-                dsp_pitch::make_preset(pitch3, true, preset);
-                m_callback.on_preset_changed(preset);
-            }
+            GetEditText();
         }
         return 0;
     }
@@ -884,7 +895,7 @@ public:
 	};
 	BEGIN_MSG_MAP( CMyDSPPopup )
 		MSG_WM_INITDIALOG( OnInitDialog )
-		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
+		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnOKButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
 		MSG_WM_HSCROLL( OnHScroll )
         MESSAGE_HANDLER(WM_USER, OnEditControlChange)
@@ -929,8 +940,9 @@ private:
 			float  pitch;
 			bool enabled;
 			dsp_rate::parse_preset(pitch,enabled, m_initData);
+            pitch *= 100;
 			slider_drytime.SetPos( (double)(pitch+5000));
-			RefreshLabel( pitch);
+			RefreshLabel( pitch/100);
 		}
 		
 		return TRUE;
@@ -940,6 +952,12 @@ private:
 	{
 		EndDialog( id );
 	}
+
+    void OnOKButton(UINT, int id, CWindow)
+    {
+        GetEditText();
+        EndDialog(id);
+    }
 
 	void OnHScroll( UINT nSBCode, UINT nPos, CWindow window )
 	{
@@ -977,25 +995,30 @@ private:
 
     }
 
+    void GetEditText()
+    {
+        CString sWindowText;
+        pitch_edit.GetWindowText(sWindowText);
+        float pitch2 = _ttof(sWindowText);
+        pitch2 = clamp_ml(pitch2, 100.0, -50.0);
+        //  pitch2 = round(pitch2);
+        if (pitch_s != sWindowText)
+        {
+
+            float pitch3 = (pitch2 * 100) + 5000;
+            slider_drytime.SetPos((double)(pitch3));
+
+            dsp_preset_impl preset;
+            dsp_rate::make_preset(pitch2, true, preset);
+            m_callback.on_preset_changed(preset);
+        }
+    }
+
     LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     {
         if (wParam == 0x1988)
         {
-            CString sWindowText;
-            pitch_edit.GetWindowText(sWindowText);
-            float pitch2 = _ttof(sWindowText);
-            pitch2 = clamp_ml(pitch2, 100.0, -50.0);
-            //  pitch2 = round(pitch2);
-            if (pitch_s != sWindowText)
-            {
-             
-                float pitch3 = (pitch2 * 100) + 5000;
-                slider_drytime.SetPos((double)(pitch3));
-
-                dsp_preset_impl preset;
-                dsp_rate::make_preset(pitch2, true, preset);
-                m_callback.on_preset_changed(preset);
-            }
+            GetEditText();
         }
         return 0;
     }
@@ -1038,7 +1061,7 @@ public:
 	};
 	BEGIN_MSG_MAP(CMyDSPPopup)
 		MSG_WM_INITDIALOG(OnInitDialog)
-		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnOKButton)
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_TEMPOTYPE, CBN_SELCHANGE, OnChange)
         MESSAGE_HANDLER(WM_USER, OnEditControlChange)
@@ -1072,26 +1095,31 @@ private:
 		return TRUE;
 	}
 
+    void GetEditText()
+    {
+        CString sWindowText;
+        pitch_edit.GetWindowText(sWindowText);
+        float pitch2 = _ttof(sWindowText);
+        pitch2 = clamp_ml(pitch2, 95.0, -95.0);
+        if (pitch_s != sWindowText)
+        {
+            float pitch3 = pitch2 * 100.00;
+            slider_drytime.SetPos((double)(pitch3 + 9500));
+            int p_type; //filter type
+            p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
+            {
+                dsp_preset_impl preset;
+                dsp_tempo::make_preset(pitch2, p_type, true, preset);
+                m_callback.on_preset_changed(preset);
+            }
+        }
+    }
+
     LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
     {
         if (wParam == 0x1988)
         {
-            CString sWindowText;
-            pitch_edit.GetWindowText(sWindowText);
-            float pitch2 = _ttof(sWindowText);
-            pitch2 = clamp_ml(pitch2, 95.0, -95.0);
-            if (pitch_s != sWindowText)
-            {
-                float pitch3 = pitch2 * 100.00;
-                slider_drytime.SetPos((double)(pitch3 + 9500));
-                int p_type; //filter type
-                p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
-                {
-                    dsp_preset_impl preset;
-                    dsp_tempo::make_preset(pitch2, p_type, true, preset);
-                    m_callback.on_preset_changed(preset);
-                }
-            }
+            GetEditText();
         }
         return 0;
     }
@@ -1113,6 +1141,11 @@ private:
         return 0;
     }
 
+    void OnOKButton(UINT, int id, CWindow)
+    {
+        GetEditText();
+        EndDialog(id);
+    }
 
 	void OnButton(UINT, int id, CWindow)
 	{
