@@ -10,7 +10,6 @@
 #define IDD_WAHWAH                      105
 #define IDD_PITCH                       106
 #define IDD_BANDPASS1                   107
-#define IDD_TEMPO                       108
 #define IDD_NORCH                       112
 #define IDC_SLIDER_MS                   1001
 #define IDC_SLIDER_LABEL_MS             1002
@@ -58,7 +57,6 @@
 #define IDC_PEAKLIMIT                   1042
 #define IDC_IIRFREQINFO                 1044
 #define IDD_TEMPO1                      1045
-#define IDD_RATE                        1046
 #define IDC_RELEASETIME                 1047
 #define IDC_IIRQ                        1049
 #define IDC_FASTRATIO                   1050
@@ -86,15 +84,14 @@
 #define IDC_PITCH                       1066
 #define IDC_DISPLAY_FASTRATIO           1067
 #define IDC_PITCHINFO                   1069
+#define IDC_PITCHINFOS1                 1069
 #define IDC_DISPLAY_SLOWRATIO           1070
 #define IDC_PITCHTYPE                   1070
+#define IDC_PITCHINFO2                  1070
+#define IDC_PITCHINFOS2                 1070
 #define IDC_TEMPOTYPE                   1071
-#define IDC_TEMPO                       1072
 #define IDC_PITCHENABLE2                1072
 #define IDC_IIRTYPELABEL                1072
-#define IDC_TEMPOINFO                   1073
-#define IDC_RATEINFO                    1074
-#define IDC_RATE                        1075
 #define IDC_COMBO2                      1077
 #define IDC_IIRFREQ1                    1099
 #define IDC_IIRFREQINFO1                1100
@@ -187,6 +184,8 @@
 #define IDC_PITCH_EDIT                  1195
 #define IDC_PITCHINFO_UI2               1196
 #define IDC_TEMPOALG                    1197
+#define IDC_RESET                       1198
+#define IDC_PITCHALGO                   1199
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
@@ -195,7 +194,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        125
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1198
+#define _APS_NEXT_CONTROL_VALUE         1200
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

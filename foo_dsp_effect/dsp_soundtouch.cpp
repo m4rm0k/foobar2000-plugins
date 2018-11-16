@@ -15,6 +15,11 @@ static void RunDSPConfigPopupTempo( const dsp_preset & p_data, HWND p_parent, ds
 #define BUFFER_SIZE 2048
 #define BUFFER_SIZE_RBTEMPO 1024
 
+static double clamp_ml(double x, double upper, double lower)
+{
+    return min(upper, max(x, lower));
+}
+
 class CEditMod : public CWindowImpl<CEditMod, CEdit >
 {
 public:
@@ -97,8 +102,13 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
-		if (pitch_amount == 0.0)st_enabled = false;
-		if (!st_enabled) return true;
+        if (pitch_amount == 0.0)
+        {
+            st_enabled = false;
+            return true;
+        }
+		if (!st_enabled) st_enabled = true;
+       
 
 		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
 		{
@@ -332,8 +342,12 @@ public:
 		t_size sample_count = chunk->get_sample_count();
 		audio_sample * src = chunk->get_data();
 
-		if (tempo_amount == 0)st_enabled = false;
-		if (!st_enabled) return true;
+        if (tempo_amount == 0)
+        {
+            st_enabled = false;
+            return true;
+        }
+        if (!st_enabled)st_enabled = true;
 
 		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
 		{
@@ -584,8 +598,13 @@ public:
 	virtual bool on_chunk(audio_chunk * chunk, abort_callback & p_abort) {
 
 
-		if (pitch_amount == 0)st_enabled = false;
-		if (!st_enabled) return true;
+        if (pitch_amount == 0.0)
+        {
+            st_enabled = false;
+            return true;
+        }
+        if (!st_enabled) st_enabled = true;
+
 
 		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
 		{
@@ -692,7 +711,9 @@ public:
 		MSG_WM_INITDIALOG( OnInitDialog )
 		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
+        COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset)
 		COMMAND_HANDLER_EX(IDC_PITCHTYPE, CBN_SELCHANGE, OnChange)
+        MESSAGE_HANDLER(WM_USER, OnEditControlChange)
 		MSG_WM_HSCROLL( OnScroll )
 	END_MSG_MAP()
 private:
@@ -716,10 +737,33 @@ private:
 		}
 	}
 
+    LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+    {
+        float pitch = 0;
+        float pitch3 = (pitch * 100) + 1200;
+        slider_drytime.SetPos((double)(pitch3));
+        
+        bool enabled = false;
+        dsp_preset_impl preset;
+        enabled = true;
+        dsp_pitch::make_preset(pitch, enabled, preset);
+        m_callback.on_preset_changed(preset);
+        RefreshLabel(pitch);
+
+
+        return 0;
+    }
+
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
 		slider_drytime = GetDlgItem(IDC_PITCH);
 		slider_drytime.SetRange(0, pitchmax);
+        pitch_edit.AttachToDlgItem(m_hWnd);
+        pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
+        CWindow w = GetDlgItem(IDC_PITCHALGO);
+        w.ShowWindow(SW_HIDE);
+        w = GetDlgItem(IDC_TEMPOTYPE);
+        w.ShowWindow(SW_HIDE);
 		int pitch_type;
 		{
 			float  pitch;
@@ -762,6 +806,7 @@ private:
 		bool enabled = false;
 		if ((LOWORD(scrollID) != SB_THUMBTRACK) && window.m_hWnd == slider_drytime.m_hWnd)
 		{
+            bool enabled = false;
 			dsp_preset_impl preset;
 			enabled = true;
 			dsp_pitch::make_preset(pitch, enabled, preset);
@@ -769,19 +814,51 @@ private:
 		}
 		RefreshLabel(pitch);
 	}
-	
 
-	void RefreshLabel(float  pitch )
-	{
-		pfc::string_formatter msg; 
-		msg << "Pitch: ";
-		msg << (pitch < 0 ? "" : "+");
-		msg << pfc::format_float(pitch,0,2) << " semitones";
-		::uSetDlgItemText( *this, IDC_PITCHINFO, msg );
-		msg.reset();
-	}
+    LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+    {
+        if (wParam == 0x1988)
+        {
+            CString sWindowText;
+            pitch_edit.GetWindowText(sWindowText);
+            float pitch2 = _ttof(sWindowText);
+            pitch2 = clamp_ml(pitch2, 12.0, -12.0);
+            if (pitch_s != sWindowText)
+            {
+                
+                float pitch3 = pitch2 * 100.00;
+                slider_drytime.SetPos((double)(pitch3 + 1200));
+                dsp_preset_impl preset;
+                dsp_pitch::make_preset(pitch3, true, preset);
+                m_callback.on_preset_changed(preset);
+            }
+        }
+        return 0;
+    }
+
+    void RefreshLabel(float  pitch)
+    {
+        pfc::string_formatter msg;
+        msg << "Pitch: ";
+        msg << (pitch < 0 ? "" : "+");
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS1, msg);
+        msg.reset();
+        msg << pfc::format_float(pitch, 0, 2);
+        CString sWindowText;
+        sWindowText = msg.c_str();
+        pitch_s = sWindowText;
+        pitch_edit.SetWindowText(sWindowText);
+        msg.reset();
+        msg << "semitones";
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS2, msg);
+
+    }
+
+
 	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 	dsp_preset_edit_callback & m_callback;
+    CEditMod pitch_edit;
+    CString pitch_s;
 	CTrackBarCtrl slider_drytime,slider_wettime,slider_dampness,slider_roomwidth,slider_roomsize;
 };
 
@@ -796,7 +873,7 @@ class CMyDSPPopupRate : public CDialogImpl<CMyDSPPopupRate>
 {
 public:
 	CMyDSPPopupRate( const dsp_preset & initData, dsp_preset_edit_callback & callback ) : m_initData( initData ), m_callback( callback ) { }
-	enum { IDD = IDD_RATE };
+	enum { IDD = IDD_PITCH };
 	enum
 	{
 		pitchmin = 0,
@@ -808,6 +885,8 @@ public:
 		COMMAND_HANDLER_EX( IDOK, BN_CLICKED, OnButton )
 		COMMAND_HANDLER_EX( IDCANCEL, BN_CLICKED, OnButton )
 		MSG_WM_HSCROLL( OnHScroll )
+        MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+        COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset);
 	END_MSG_MAP()
 private:
 	void DSPConfigChange(dsp_chain_config const & cfg)
@@ -816,6 +895,7 @@ private:
 			ApplySettings();
 		}
 	}
+
 
 	void ApplySettings()
 	{
@@ -832,8 +912,14 @@ private:
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
-		slider_drytime = GetDlgItem(IDC_RATE);
+		slider_drytime = GetDlgItem(IDC_PITCH);
 		slider_drytime.SetRange(0, pitchmax);
+        pitch_edit.AttachToDlgItem(m_hWnd);
+        pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
+        CWindow w = GetDlgItem(IDC_PITCHALGO);
+        w.ShowWindow(SW_HIDE);
+        w = GetDlgItem(IDC_TEMPOTYPE);
+        w.ShowWindow(SW_HIDE);
 
 		{
 			float  pitch;
@@ -869,17 +955,64 @@ private:
 		RefreshLabel( pitch);
 	}
 
-	void RefreshLabel(float  pitch )
-	{
-		pfc::string_formatter msg; 
-		msg << "Playback Rate: ";
-		msg << (pitch < 0 ? "" : "+");
-		msg << pfc::format_float( pitch,0,2) << "%";
-		::uSetDlgItemText( *this, IDC_RATEINFO, msg );
-	
-	}
+    void RefreshLabel(float  pitch)
+    {
+        pfc::string_formatter msg;
+        msg << "PB Rate: ";
+        msg << (pitch < 0 ? "" : "+");
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS1, msg);
+        msg.reset();
+        msg << pfc::format_float(pitch, 0, 2);
+        CString sWindowText;
+        sWindowText = msg.c_str();
+        pitch_s = sWindowText;
+        pitch_edit.SetWindowText(sWindowText);
+        msg.reset();
+        msg << "%";
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS2, msg);
+
+    }
+
+    LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+    {
+        if (wParam == 0x1988)
+        {
+            CString sWindowText;
+            pitch_edit.GetWindowText(sWindowText);
+            float pitch2 = _ttof(sWindowText);
+            pitch2 = clamp_ml(pitch2, 100.0, -50.0);
+            //  pitch2 = round(pitch2);
+            if (pitch_s != sWindowText)
+            {
+             
+                float pitch3 = (pitch2 * 100) + 5000;
+                slider_drytime.SetPos((double)(pitch3));
+
+                dsp_preset_impl preset;
+                dsp_rate::make_preset(pitch2, true, preset);
+                m_callback.on_preset_changed(preset);
+            }
+        }
+        return 0;
+    }
+
+    LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+    {
+        float pitch = 0;
+        float pitch3 = (pitch * 100) + 5000;
+        slider_drytime.SetPos((double)(pitch3));
+        dsp_preset_impl preset;
+
+        dsp_rate::make_preset(pitch, true, preset);
+        m_callback.on_preset_changed(preset);
+        RefreshLabel(0);
+        return 0;
+    }
+
 	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 	dsp_preset_edit_callback & m_callback;
+    CEditMod pitch_edit;
+    CString pitch_s;
 	CTrackBarCtrl slider_drytime,slider_wettime,slider_dampness,slider_roomwidth,slider_roomsize;
 };
 static void RunDSPConfigPopupRate( const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback )
@@ -892,7 +1025,7 @@ class CMyDSPPopupTempo : public CDialogImpl<CMyDSPPopupTempo>
 {
 public:
 	CMyDSPPopupTempo(const dsp_preset & initData, dsp_preset_edit_callback & callback) : m_initData(initData), m_callback(callback) { }
-	enum { IDD = IDD_TEMPO };
+	enum { IDD = IDD_PITCH };
 	enum
 	{
 		pitchmin = 0,
@@ -904,15 +1037,19 @@ public:
 		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 		COMMAND_HANDLER_EX(IDC_TEMPOTYPE, CBN_SELCHANGE, OnChange)
-
-		MSG_WM_HSCROLL(OnScroll)
+        MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+        
+        COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset);
+        MSG_WM_HSCROLL(OnScroll)
 	END_MSG_MAP()
 private:
 
 	BOOL OnInitDialog(CWindow, LPARAM)
 	{
-		slider_drytime = GetDlgItem(IDC_TEMPO);
+		slider_drytime = GetDlgItem(IDC_PITCH);
 		slider_drytime.SetRange(0,tempomax);
+        pitch_edit.AttachToDlgItem(m_hWnd);
+        pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
 
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
@@ -929,6 +1066,47 @@ private:
 		}
 		return TRUE;
 	}
+
+    LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+    {
+        if (wParam == 0x1988)
+        {
+            CString sWindowText;
+            pitch_edit.GetWindowText(sWindowText);
+            float pitch2 = _ttof(sWindowText);
+            pitch2 = clamp_ml(pitch2, 95.0, -95.0);
+            if (pitch_s != sWindowText)
+            {
+                float pitch3 = pitch2 * 100.00;
+                slider_drytime.SetPos((double)(pitch3 + 9500));
+                int p_type; //filter type
+                p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
+                {
+                    dsp_preset_impl preset;
+                    dsp_tempo::make_preset(pitch2, p_type, true, preset);
+                    m_callback.on_preset_changed(preset);
+                }
+            }
+        }
+        return 0;
+    }
+
+
+    LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+    {
+        float pitch = 0;
+        float pitch3 = (pitch * 100) + 9500;
+        slider_drytime.SetPos((double)(pitch3));
+        int p_type; //filter type
+        p_type = SendDlgItemMessage(IDC_TEMPOTYPE, CB_GETCURSEL);
+        {
+            dsp_preset_impl preset;
+            dsp_tempo::make_preset(pitch, p_type, true, preset);
+            m_callback.on_preset_changed(preset);
+        }
+        RefreshLabel(pitch);
+        return 0;
+    }
 
 
 	void OnButton(UINT, int id, CWindow)
@@ -968,18 +1146,28 @@ private:
 	}
 
 
-	void RefreshLabel(float  pitch)
-	{
-		pfc::string_formatter msg;
-		msg << "Tempo: ";
-		msg << (pitch < 0 ? "" : "+");
-		msg << pfc::format_float(pitch, 0, 2) << " %";
-		::uSetDlgItemText(*this, IDC_TEMPOINFO, msg);
-		msg.reset();
-	}
+    void RefreshLabel(float  pitch)
+    {
+        pfc::string_formatter msg;
+        msg << "Tempo: ";
+        msg << (pitch < 0 ? "" : "+");
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS1, msg);
+        msg.reset();
+        msg << pfc::format_float(pitch, 0, 2);
+        CString sWindowText;
+        sWindowText = msg.c_str();
+        pitch_s = sWindowText;
+        pitch_edit.SetWindowText(sWindowText);
+        msg.reset();
+        msg << "%";
+        ::uSetDlgItemText(*this, IDC_PITCHINFOS2, msg);
+
+    }
 	const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 	dsp_preset_edit_callback & m_callback;
 	CTrackBarCtrl slider_drytime;
+    CString pitch_s;
+    CEditMod pitch_edit;
 };
 static void RunDSPConfigPopupTempo(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
 {
@@ -1009,9 +1197,10 @@ public:
 
    };
    BEGIN_MSG_MAP_EX(uielem_pitch)
-      MSG_WM_INITDIALOG(OnInitDialog)
-      COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
-      MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+       MSG_WM_INITDIALOG(OnInitDialog)
+       COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
+       MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+       COMMAND_HANDLER(IDC_RESET,BN_CLICKED, OnReset);
       MSG_WM_HSCROLL(OnScroll)
    END_MSG_MAP()
 
@@ -1073,10 +1262,7 @@ private:
       static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_pitch);
    }
 
-   double clamp(double x, double upper, double lower)
-   {
-      return min(upper, max(x, lower));
-   }
+  
    void PitchEnable(float pitch, bool enabled) {
       dsp_preset_impl preset;
       dsp_pitch::make_preset(pitch, enabled, preset);
@@ -1104,7 +1290,7 @@ private:
          CString sWindowText;
          pitch_edit.GetWindowText(sWindowText);
          float pitch2 = _ttof(sWindowText);
-         pitch2 = clamp(pitch2, 12.0, -12.0);
+         pitch2 = clamp_ml(pitch2, 12.0, -12.0);
          if (pitch_s != sWindowText)
          {
             pitch = pitch2;
@@ -1114,6 +1300,16 @@ private:
          }
       }
       return 0;
+   }
+
+   LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+   {
+       pitch = 0;
+       float pitch3 = (pitch * 100) + 1200;
+       slider_pitch.SetPos((double)(pitch3));
+       SetConfig();
+       OnConfigChanged();
+       return 0;
    }
 
    void OnScroll(UINT scrollID, int pos, CWindow window)
@@ -1292,6 +1488,7 @@ public:
       COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
       MESSAGE_HANDLER(WM_USER, OnEditControlChange)
       MSG_WM_HSCROLL(OnScroll)
+      COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset);
       END_MSG_MAP()
 
 
@@ -1395,6 +1592,16 @@ private:
          }
       }
       return 0;
+   }
+
+   LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+   {
+       pitch = 0;
+       float pitch3 = (0 * 100) + 9500;
+       slider_pitch.SetPos((double)(pitch3));
+       SetConfig();
+       OnConfigChanged();
+       return 0;
    }
 
    void OnScroll(UINT scrollID, int pos, CWindow window)
@@ -1575,6 +1782,7 @@ public:
       MSG_WM_INITDIALOG(OnInitDialog)
       COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI, BN_CLICKED, OnEnabledToggle)
       MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+       COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset);
       MSG_WM_HSCROLL(OnScroll)
       END_MSG_MAP()
 
@@ -1681,6 +1889,16 @@ private:
          }
       }
       return 0;
+   }
+
+   LRESULT OnReset(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+   {
+       pitch = 0;
+       float pitch3 = (pitch * 100) + 5000;
+       slider_pitch.SetPos((double)(pitch3));
+       SetConfig();
+       OnConfigChanged();
+       return 0;
    }
 
    void OnScroll(UINT scrollID, int pos, CWindow window)
