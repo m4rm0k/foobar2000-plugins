@@ -761,6 +761,8 @@ private:
         pitch_edit.AttachToDlgItem(m_hWnd);
         pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
         CWindow w = GetDlgItem(IDC_PITCHALGO);
+        CWindow wind(m_hWnd);
+        wind.SetWindowTextW(L"Pitch Shift DSP Configuration");
         w.ShowWindow(SW_HIDE);
         w = GetDlgItem(IDC_TEMPOTYPE);
         w.ShowWindow(SW_HIDE);
@@ -917,6 +919,8 @@ private:
         pitch_edit.AttachToDlgItem(m_hWnd);
         pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
         CWindow w = GetDlgItem(IDC_PITCHALGO);
+        CWindow wind(m_hWnd);
+        wind.SetWindowTextW(L"Playback Rate Shift DSP Configuration");
         w.ShowWindow(SW_HIDE);
         w = GetDlgItem(IDC_TEMPOTYPE);
         w.ShowWindow(SW_HIDE);
@@ -1050,7 +1054,8 @@ private:
 		slider_drytime.SetRange(0,tempomax);
         pitch_edit.AttachToDlgItem(m_hWnd);
         pitch_edit.SubclassWindow(GetDlgItem(IDC_PITCH_EDIT));
-
+        CWindow wind(m_hWnd);
+        wind.SetWindowTextW(L"Tempo Shift DSP Configuration");
 		CWindow w = GetDlgItem(IDC_TEMPOTYPE);
 		uSendMessageText(w, CB_ADDSTRING, 0, "SoundTouch");
 		uSendMessageText(w, CB_ADDSTRING, 0, "Rubber Band");
