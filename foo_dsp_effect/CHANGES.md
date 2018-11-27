@@ -1,3 +1,13 @@
+0.35
+* Added reset functionality to pitch/rate/tempo DSPs
+- Can now easily reset sliders to 0
+- Setting the pitch/rate/tempo DSPs to 0 now just passes through
+samples.
+* Ported over the GUI changes from the pitch/tempo/rate 
+UI elements to the normal DSP config manager equivalents.
+- Now you can also type in the exact values (to 2 decimal points)
+in the dialogs.
+
 0.34
 * Minor change to subclassed control for pitch/rate/tempo editing.
 
