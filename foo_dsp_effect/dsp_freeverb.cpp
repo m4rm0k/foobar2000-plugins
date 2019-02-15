@@ -195,10 +195,10 @@ namespace {
 			}
 
 
-			ret.m_min_width = MulDiv(420, DPI.cx, 96);
-			ret.m_min_height = MulDiv(340, DPI.cy, 96);
-			ret.m_max_width = MulDiv(420, DPI.cx, 96);
-			ret.m_max_height = MulDiv(340, DPI.cy, 96);
+			ret.m_min_width = MulDiv(350, DPI.cx, 96);
+			ret.m_min_height = MulDiv(240, DPI.cy, 96);
+			ret.m_max_width = MulDiv(350, DPI.cx, 96);
+			ret.m_max_height = MulDiv(240, DPI.cy, 96);
 
 			// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
 			ret.adjustForWindow(*this);
