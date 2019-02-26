@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by foo_dsp_effect.rc
 //
-#define IDOK2                           3
 #define IDCANCEL3                       6
 #define IDD_DSP                         101
 #define IDD_ECHO                        102
@@ -181,19 +180,34 @@
 #define IDC_PITCHINFO_UI                1184
 #define IDC_PITCH_UI                    1185
 #define IDC_PITCHENABLED_UI             1186
+#define IDC_PITCH_UI2                   1187
+#define IDC_PITCHENABLED_UI2            1188
+#define IDC_PITCHINFO_UI3               1189
+#define IDC_PITCH_UI3                   1190
 #define IDC_TEMPOTYPE_UI                1191
+#define IDC_TEMPOTYPE_UI2               1192
+#define IDC_PITCHENABLED_UI3            1193
+#define IDC_PITCHINFO_UI5               1194
 #define IDC_PITCH_EDIT                  1195
 #define IDC_PITCHINFO_UI2               1196
 #define IDC_TEMPOALG                    1197
 #define IDC_RESET                       1198
 #define IDC_PITCHALGO                   1199
+#define IDC_PITCH_EDIT2                 1199
+#define IDC_PITCHINFO_UI4               1200
+#define IDC_TEMPOALG2                   1201
+#define IDC_RESET2                      1202
+#define IDC_PITCH_EDIT3                 1203
+#define IDC_PITCHINFO_UI6               1204
+#define IDC_TEMPOTYPE_UI3               1206
+#define IDC_RESET3                      1207
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        126
+#define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1200
 #define _APS_NEXT_SYMED_VALUE           101
