@@ -1611,7 +1611,7 @@ private:
 		RefreshTempoLabel(tempo2 / 100);
 
 		slider_rate.SetPos((double)((rate * 100) + 5000));
-		RefreshRateLabel(pitch);
+		RefreshRateLabel(rate);
 
 	}
 
