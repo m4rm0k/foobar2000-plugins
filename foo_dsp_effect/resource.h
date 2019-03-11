@@ -195,6 +195,7 @@
 #define IDC_PITCHALGO                   1199
 #define IDC_PITCH_EDIT2                 1199
 #define IDC_PITCHINFO_UI4               1200
+#define IDC_EDIT1                       1200
 #define IDC_TEMPOALG2                   1201
 #define IDC_RESET2                      1202
 #define IDC_PITCH_EDIT3                 1203
@@ -209,7 +210,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        127
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1200
+#define _APS_NEXT_CONTROL_VALUE         1201
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

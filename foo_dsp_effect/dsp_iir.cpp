@@ -6,6 +6,33 @@
 #include "dsp_guids.h"
 
 namespace {
+	class CEditMod : public CWindowImpl<CEditMod, CEdit >
+	{
+	public:
+		BEGIN_MSG_MAP(CEditMod)
+			MESSAGE_HANDLER(WM_CHAR, OnChar)
+		END_MSG_MAP()
+
+		CEditMod(HWND hWnd = NULL) { }
+		LRESULT OnChar(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+		{
+			switch (wParam)
+			{
+			case '\r': //Carriage return
+				::PostMessage(m_parent, WM_USER, 0x1988, 0L);
+				return 0;
+				break;
+			}
+			return DefWindowProc(uMsg, wParam, lParam);
+		}
+		void AttachToDlgItem(HWND parent)
+		{
+			m_parent = parent;
+		}
+	private:
+		UINT m_dlgItem;
+		HWND m_parent;
+	};
 
 	static void RunConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback);
 
@@ -15,6 +42,7 @@ namespace {
 		int p_freq; //40.0, 13000.0 (Frequency: Hz)
 		int p_gain; //gain
 		int p_type; //filter type
+		float p_qual;
 		bool iir_enabled;
 		pfc::array_t<IIRFilter> m_buffers;
 	public:
@@ -25,10 +53,10 @@ namespace {
 			return guid_iir;
 		}
 
-		dsp_iir(dsp_preset const & in) :m_rate(0), m_ch(0), m_ch_mask(0), p_freq(400), p_gain(10), p_type(0)
+		dsp_iir(dsp_preset const & in) :m_rate(0), m_ch(0), m_ch_mask(0), p_freq(400),p_qual(0.707), p_gain(10), p_type(0)
 		{
 			iir_enabled = true;
-			parse_preset(p_freq, p_gain, p_type, iir_enabled, in);
+			parse_preset(p_freq, p_gain, p_type,p_qual, iir_enabled, in);
 		}
 
 		static void g_get_name(pfc::string_base & p_out) { p_out = "IIR Filter"; }
@@ -47,7 +75,7 @@ namespace {
 				{
 					IIRFilter & e = m_buffers[i];
 					e.setFrequency(p_freq);
-					e.setQuality(0.707);
+					e.setQuality(p_qual);
 					e.setGain(p_gain);
 					e.init(m_rate, p_type);
 				}
@@ -87,7 +115,7 @@ namespace {
 		}
 		static bool g_get_default_preset(dsp_preset & p_out)
 		{
-			make_preset(400, 10, 1, true, p_out);
+			make_preset(400, 10, 1,0.707, true, p_out);
 			return true;
 		}
 		static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
@@ -96,16 +124,17 @@ namespace {
 		}
 		static bool g_have_config_popup() { return true; }
 
-		static void make_preset(int p_freq, int p_gain, int p_type, bool enabled, dsp_preset & out)
+		static void make_preset(int p_freq, int p_gain, int p_type,float p_quality, bool enabled, dsp_preset & out)
 		{
 			dsp_preset_builder builder;
 			builder << p_freq;
 			builder << p_gain; //gain
 			builder << p_type; //filter type
+			builder << p_quality;
 			builder << enabled;
 			builder.finish(g_get_guid(), out);
 		}
-		static void parse_preset(int & p_freq, int & p_gain, int & p_type, bool & enabled, const dsp_preset & in)
+		static void parse_preset(int & p_freq, int & p_gain, int & p_type,float & p_quality, bool & enabled, const dsp_preset & in)
 		{
 			try
 			{
@@ -113,9 +142,10 @@ namespace {
 				parser >> p_freq;
 				parser >> p_gain; //gain
 				parser >> p_type; //filter type
+				parser >> p_quality;
 				parser >> enabled;
 			}
-			catch (exception_io_data) { p_freq = 400; p_gain = 10; p_type = 1; enabled = true; }
+			catch (exception_io_data) { p_freq = 400; p_gain = 10; p_type = 1; p_quality = 0.707; enabled = true; }
 		}
 	};
 
@@ -141,9 +171,33 @@ namespace {
 			COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
 			COMMAND_HANDLER_EX(IDC_IIRTYPE, CBN_SELCHANGE, OnChange)
 			MSG_WM_HSCROLL(OnScroll)
+			MESSAGE_HANDLER(WM_USER, OnEditControlChange)
 		END_MSG_MAP()
 
 	private:
+		LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+		{
+			if (wParam == 0x1988)
+			{
+				GetEditText();
+			}
+			return 0;
+		}
+
+		void GetEditText()
+		{
+			CString sWindowText;
+			pitch_edit.GetWindowText(sWindowText);
+			float pitch2 = _ttof(sWindowText);
+			if (pitch_s != sWindowText)
+			{
+				dsp_preset_impl preset;
+				dsp_iir::make_preset(p_freq, p_gain, p_type, pitch2, true, preset);
+				p_qual = pitch2;
+				m_callback.on_preset_changed(preset);
+			}
+		}
+
 		void DSPConfigChange(dsp_chain_config const & cfg)
 		{
 			if (m_hWnd != NULL) {
@@ -156,7 +210,7 @@ namespace {
 			dsp_preset_impl preset2;
 			if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_iir, preset2)) {
 				bool enabled;
-				dsp_iir::parse_preset(p_freq, p_gain, p_type, enabled, preset2);
+				dsp_iir::parse_preset(p_freq, p_gain, p_type,p_qual, enabled, preset2);
 				slider_freq.SetPos(p_freq);
 				slider_gain.SetPos(p_gain);
 				CWindow w = GetDlgItem(IDC_IIRTYPE1);
@@ -178,7 +232,8 @@ namespace {
 		BOOL OnInitDialog(CWindow, LPARAM)
 		{
 
-
+			pitch_edit.AttachToDlgItem(m_hWnd);
+			pitch_edit.SubclassWindow(GetDlgItem(IDC_IIRQ));
 			slider_freq = GetDlgItem(IDC_IIRFREQ);
 			slider_freq.SetRangeMin(0);
 			slider_freq.SetRangeMax(FreqMax);
@@ -187,7 +242,7 @@ namespace {
 			{
 
 				bool enabled;
-				dsp_iir::parse_preset(p_freq, p_gain, p_type, enabled, m_initData);
+				dsp_iir::parse_preset(p_freq, p_gain, p_type,p_qual, enabled, m_initData);
 				if (p_type == 10)
 				{
 					slider_freq.EnableWindow(FALSE);
@@ -225,6 +280,7 @@ namespace {
 
 		void OnButton(UINT, int id, CWindow)
 		{
+			GetEditText();
 			EndDialog(id);
 		}
 
@@ -236,7 +292,7 @@ namespace {
 			p_type = SendDlgItemMessage(IDC_IIRTYPE, CB_GETCURSEL);
 			{
 				dsp_preset_impl preset;
-				dsp_iir::make_preset(p_freq, p_gain, p_type, true, preset);
+				dsp_iir::make_preset(p_freq, p_gain, p_type,p_qual, true, preset);
 				m_callback.on_preset_changed(preset);
 			}
 			if (p_type == 10) {
@@ -260,7 +316,7 @@ namespace {
 			if (LOWORD(scrollid) != SB_THUMBTRACK)
 			{
 				dsp_preset_impl preset;
-				dsp_iir::make_preset(p_freq, p_gain, p_type, true, preset);
+				dsp_iir::make_preset(p_freq, p_gain, p_type,p_qual, true, preset);
 				m_callback.on_preset_changed(preset);
 			}
 			if (p_type == 10) {
@@ -298,10 +354,20 @@ namespace {
 			msg << "Gain: ";
 			msg << pfc::format_int(p_gain) << " db";
 			::uSetDlgItemText(*this, IDC_IIRGAININFO, msg);
+
+			msg.reset();
+			msg << pfc::format_float(p_qual, 0, 3);
+			CString sWindowText;
+			sWindowText = msg.c_str();
+			pitch_s = sWindowText;
+			pitch_edit.SetWindowText(sWindowText);
 		}
 		int p_freq;
 		int p_gain;
 		int p_type;
+		float p_qual;
+		CEditMod pitch_edit;
+		CString pitch_s;
 		const dsp_preset & m_initData; // modal dialog so we can reference this caller-owned object.
 		dsp_preset_edit_callback & m_callback;
 		CTrackBarCtrl slider_freq, slider_gain;
@@ -331,6 +397,7 @@ namespace {
 	public:
 		uielem_iir(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
 			p_freq = 400; p_gain = 10; p_type = 1;
+			p_qual = 0.707;
 			IIR_enabled = true;
 
 		}
@@ -348,6 +415,7 @@ namespace {
 			MSG_WM_INITDIALOG(OnInitDialog)
 			COMMAND_HANDLER_EX(IDC_IIRENABLED, BN_CLICKED, OnEnabledToggle)
 			MSG_WM_HSCROLL(OnScroll)
+			MESSAGE_HANDLER(WM_USER, OnEditControlChange)
 		END_MSG_MAP()
 
 
@@ -398,6 +466,30 @@ namespace {
 		}
 
 	private:
+		LRESULT OnEditControlChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+		{
+			if (wParam == 0x1988)
+			{
+				GetEditText();
+			}
+			return 0;
+		}
+
+		void GetEditText()
+		{
+			CString sWindowText;
+			pitch_edit.GetWindowText(sWindowText);
+			float pitch2 = _ttof(sWindowText);
+			if (pitch_s != sWindowText)
+			{
+				dsp_preset_impl preset;
+				dsp_iir::make_preset(p_freq, p_gain, p_type, pitch2, true, preset);
+				static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+				p_qual = pitch2;
+			}
+		}
+
+
 		void SetIIREnabled(bool state) { m_buttonIIREnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
 		bool IsIIREnabled() { return m_buttonIIREnabled == NULL || m_buttonIIREnabled.GetCheck() == BST_CHECKED; }
 
@@ -406,9 +498,9 @@ namespace {
 		}
 
 
-		void IIREnable(int p_freq, int p_gain, int p_type, bool IIR_enabled) {
+		void IIREnable(int p_freq, int p_gain, int p_type,float p_qual, bool IIR_enabled) {
 			dsp_preset_impl preset;
-			dsp_iir::make_preset(p_freq, p_gain, p_type, IIR_enabled, preset);
+			dsp_iir::make_preset(p_freq, p_gain, p_type, p_qual, IIR_enabled, preset);
 			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 		}
 
@@ -417,7 +509,7 @@ namespace {
 			if (IsIIREnabled()) {
 				GetConfig();
 				dsp_preset_impl preset;
-				dsp_iir::make_preset(p_freq, p_gain, p_type, IIR_enabled, preset);
+				dsp_iir::make_preset(p_freq, p_gain, p_type, p_qual, IIR_enabled, preset);
 				//yes change api;
 				static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 			}
@@ -435,7 +527,7 @@ namespace {
 			{
 				if (LOWORD(scrollID) != SB_THUMBTRACK)
 				{
-					IIREnable(p_freq, p_gain, p_type, IIR_enabled);
+					IIREnable(p_freq, p_gain, p_type,p_qual, IIR_enabled);
 				}
 			}
 
@@ -465,7 +557,7 @@ namespace {
 			dsp_preset_impl preset;
 			if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_iir, preset)) {
 				SetIIREnabled(true);
-				dsp_iir::parse_preset(p_freq, p_gain, p_type, IIR_enabled, preset);
+				dsp_iir::parse_preset(p_freq, p_gain, p_type,p_qual, IIR_enabled, preset);
 				SetIIREnabled(IIR_enabled);
 				SetConfig();
 			}
@@ -477,7 +569,7 @@ namespace {
 
 		void OnConfigChanged() {
 			if (IsIIREnabled()) {
-				IIREnable(p_freq, p_gain, p_type, IIR_enabled);
+				IIREnable(p_freq, p_gain, p_type, p_qual, IIR_enabled);
 			}
 			else {
 				IIRDisable();
@@ -509,7 +601,8 @@ namespace {
 
 		BOOL OnInitDialog(CWindow, LPARAM)
 		{
-
+			pitch_edit.AttachToDlgItem(m_hWnd);
+			pitch_edit.SubclassWindow(GetDlgItem(IDC_IIRQ));
 			slider_freq = GetDlgItem(IDC_IIRFREQ1);
 			slider_freq.SetRangeMin(0);
 			slider_freq.SetRangeMax(FreqMax);
@@ -558,12 +651,22 @@ namespace {
 			msg << "Gain: ";
 			msg << pfc::format_int(p_gain) << " db";
 			::uSetDlgItemText(*this, IDC_IIRGAININFO1, msg);
+
+			msg.reset();
+			msg << pfc::format_float(p_qual, 0, 3);
+			CString sWindowText;
+			sWindowText = msg.c_str();
+			pitch_s = sWindowText;
+			pitch_edit.SetWindowText(sWindowText);
 		}
 
 		bool IIR_enabled;
 		int p_freq; //40.0, 13000.0 (Frequency: Hz)
 		int p_gain; //gain
 		int p_type; //filter type
+		float p_qual;
+		CEditMod pitch_edit;
+		CString pitch_s;
 		CTrackBarCtrl slider_freq, slider_gain;
 		CButton m_buttonIIREnabled;
 		bool m_ownIIRUpdate;

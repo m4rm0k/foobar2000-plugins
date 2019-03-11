@@ -2,7 +2,8 @@
 #include "iirfilters.h"
 
 #include "../SDK/foobar2000.h"
-
+#include <mmintrin.h>
+#define AVOIDDENORMALS _mm_setcsr(_mm_getcsr() | 0x8000);
 
 #ifndef M_PI
 #define M_PI		3.1415926535897932384626433832795
@@ -232,6 +233,7 @@ void IIRFilter::init(int samplerate, int filter_type)
 
 float IIRFilter::Process(float samp)
 {
+	AVOIDDENORMALS
 	float out, in = 0;
 	in = samp;
 	out = (b0 * in + b1 * xn1 + b2 * xn2 - a1 * yn1 - a2 * yn2) / a0;
