@@ -415,6 +415,7 @@ namespace {
 			MSG_WM_INITDIALOG(OnInitDialog)
 			COMMAND_HANDLER_EX(IDC_IIRENABLED, BN_CLICKED, OnEnabledToggle)
 			MSG_WM_HSCROLL(OnScroll)
+			COMMAND_HANDLER_EX(IDC_IIRTYPE1, CBN_SELCHANGE, OnChange1)
 			MESSAGE_HANDLER(WM_USER, OnEditControlChange)
 		END_MSG_MAP()
 
@@ -473,6 +474,30 @@ namespace {
 				GetEditText();
 			}
 			return 0;
+		}
+
+		void OnChange1(UINT scrollid, int id, CWindow window)
+		{
+			CWindow w;
+			p_freq = slider_freq.GetPos();
+			p_gain = slider_gain.GetPos();
+			p_type = SendDlgItemMessage(IDC_IIRTYPE1, CB_GETCURSEL);
+			{
+				dsp_preset_impl preset;
+				dsp_iir::make_preset(p_freq, p_gain, p_type, p_qual, true, preset);
+				static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+			}
+			if (p_type == 10) {
+				slider_freq.EnableWindow(FALSE);
+				slider_gain.EnableWindow(FALSE);
+			}
+			else
+			{
+				slider_freq.EnableWindow(TRUE);
+				slider_gain.EnableWindow(TRUE);
+			}
+			RefreshLabel(p_freq, p_gain, p_type);
+
 		}
 
 		void GetEditText()
