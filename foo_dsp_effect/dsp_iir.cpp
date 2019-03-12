@@ -233,7 +233,7 @@ namespace {
 		{
 
 			pitch_edit.AttachToDlgItem(m_hWnd);
-			pitch_edit.SubclassWindow(GetDlgItem(IDC_IIRQ));
+			pitch_edit.SubclassWindow(GetDlgItem(IDC_IIRQ1));
 			slider_freq = GetDlgItem(IDC_IIRFREQ);
 			slider_freq.SetRangeMin(0);
 			slider_freq.SetRangeMax(FreqMax);
