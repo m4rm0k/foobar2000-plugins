@@ -1255,6 +1255,7 @@ public:
 		COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI2, BN_CLICKED, OnEnabledToggle)
 		COMMAND_HANDLER_EX(IDC_PITCHENABLED_UI3, BN_CLICKED, OnEnabledToggle)
 		MESSAGE_HANDLER(WM_USER, OnEditControlChange)
+		COMMAND_HANDLER_EX(IDC_TEMPOTYPE_UI, CBN_SELCHANGE, OnChange1)
 		COMMAND_HANDLER(IDC_RESET, BN_CLICKED, OnReset);
 	COMMAND_HANDLER(IDC_RESET2, BN_CLICKED, OnReset2);
 	COMMAND_HANDLER(IDC_RESET3, BN_CLICKED, OnReset3);
@@ -1310,6 +1311,19 @@ public:
 		return ret;
 	}
 private:
+
+	void OnChange1(UINT scrollID, int pos, CWindow window)
+	{
+		GetConfig();
+		if (IsTempoEnabled())
+		{
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_tempo::make_preset(tempo, t_type, tempo_enabled, preset);
+			//yes change api;
+			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+		}
+	}
 
 
 

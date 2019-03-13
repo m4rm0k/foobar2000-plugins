@@ -191,6 +191,7 @@ namespace {
 			float pitch2 = _ttof(sWindowText);
 			if (pitch_s != sWindowText)
 			{
+			
 				dsp_preset_impl preset;
 				dsp_iir::make_preset(p_freq, p_gain, p_type, pitch2, true, preset);
 				p_qual = pitch2;
@@ -482,10 +483,12 @@ namespace {
 			p_freq = slider_freq.GetPos();
 			p_gain = slider_gain.GetPos();
 			p_type = SendDlgItemMessage(IDC_IIRTYPE1, CB_GETCURSEL);
+			if(IsIIREnabled())
 			{
 				dsp_preset_impl preset;
 				dsp_iir::make_preset(p_freq, p_gain, p_type, p_qual, true, preset);
 				static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+
 			}
 			if (p_type == 10) {
 				slider_freq.EnableWindow(FALSE);
@@ -507,10 +510,14 @@ namespace {
 			float pitch2 = _ttof(sWindowText);
 			if (pitch_s != sWindowText)
 			{
-				dsp_preset_impl preset;
-				dsp_iir::make_preset(p_freq, p_gain, p_type, pitch2, true, preset);
-				static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
-				p_qual = pitch2;
+				if (IsIIREnabled())
+				{
+					dsp_preset_impl preset;
+					dsp_iir::make_preset(p_freq, p_gain, p_type, pitch2, true, preset);
+					static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+					p_qual = pitch2;
+				}
+				
 			}
 		}
 

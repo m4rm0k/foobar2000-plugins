@@ -3,6 +3,8 @@
 * Fixed issues with changing filter in IIR filter UI element. (beta 1)
 * Added editable "Q" for IIR filter. (beta 1)
 * Moved pitch/tempo/rate UI elements back into 1 dialog. (beta 1)
+* Fixed IIR filter selection in UI element when disabled (beta 2)
+* Fixed tempo selection in UI element when disabled (beta 2)
 
 0.35
 * Added reset functionality to pitch/rate/tempo DSPs
