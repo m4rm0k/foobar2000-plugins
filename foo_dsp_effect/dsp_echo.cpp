@@ -370,7 +370,7 @@ namespace {
 		}
 
 		bool get_menu_command_description(pfc::string_base & out) {
-			out = "Opens a window for chorus effects.";
+			out = "Opens a window for echo effects.";
 			return true;
 		}
 
