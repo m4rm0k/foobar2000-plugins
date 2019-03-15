@@ -5,6 +5,7 @@
 * Moved pitch/tempo/rate UI elements back into 1 dialog. (beta 1)
 * Fixed IIR filter selection in UI element when disabled (beta 2)
 * Fixed tempo selection in UI element when disabled (beta 2)
+* Fixed typo for echo UI element selection (beta 3)
 
 0.35
 * Added reset functionality to pitch/rate/tempo DSPs
