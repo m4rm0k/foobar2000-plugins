@@ -115,7 +115,7 @@ namespace {
 		}
 		static bool g_get_default_preset(dsp_preset & p_out)
 		{
-			make_preset(400, 10, 1,0.707, true, p_out);
+			make_preset(400, 10, 0,0.707, true, p_out);
 			return true;
 		}
 		static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
@@ -145,7 +145,7 @@ namespace {
 				parser >> p_quality;
 				parser >> enabled;
 			}
-			catch (exception_io_data) { p_freq = 400; p_gain = 10; p_type = 1; p_quality = 0.707; enabled = true; }
+			catch (exception_io_data) { p_freq = 400; p_gain = 10; p_type = 0; p_quality = 0.707; enabled = true; }
 		}
 	};
 
@@ -397,7 +397,7 @@ namespace {
 	class uielem_iir : public CDialogImpl<uielem_iir>, public ui_element_instance {
 	public:
 		uielem_iir(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
-			p_freq = 400; p_gain = 10; p_type = 1;
+			p_freq = 400; p_gain = 10; p_type = 0;
 			p_qual = 0.707;
 			IIR_enabled = true;
 

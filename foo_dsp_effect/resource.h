@@ -80,7 +80,9 @@
 #define IDD_ECHO1                       1061
 #define IDD_PITCH_ELEMENT               1062
 #define IDC_IIRTYPE                     1063
+#define IDD_DMOCHORUS                   1063
 #define IDC_DISPLAY_RELEASE             1064
+#define IDD_DMOCHORUS1                  1064
 #define IDC_PITCH                       1066
 #define IDC_DISPLAY_FASTRATIO           1067
 #define IDC_PITCHINFO                   1069
@@ -162,13 +164,16 @@
 #define IDC_CHORUSDRYWET                1166
 #define IDC_CHORUSDRYWETLAB             1167
 #define IDC_CHORUSDELAYMS1              1168
+#define IDC_DMOCHORUSFEEDBACK           1168
 #define IDC_CHORUSDELAYLAB1             1169
+#define IDC_DMOCHORUSFEEDBACKLAB        1169
 #define IDC_CHORUSDEPTHMSLAB1           1170
 #define IDC_CHORUSLFOFREQ1              1171
 #define IDC_CHORUSLFOFREQLAB1           1172
 #define IDC_CHORUSDRYWET1               1173
 #define IDC_CHORUSDRYWETLAB1            1174
 #define IDC_CHORUSENABLED               1175
+#define IDC_DMOCHORUSENABLE             1175
 #define IDC_CHORUSDEPTHMS1              1176
 #define IDC_ECHOENABLED                 1177
 #define IDC_SLIDER_MS1                  1178
@@ -189,7 +194,9 @@
 #define IDC_PITCHENABLED_UI3            1193
 #define IDC_PITCHINFO_UI5               1194
 #define IDC_PITCH_EDIT                  1195
+#define IDC_DMOCHORUSWAVETYPE           1195
 #define IDC_PITCHINFO_UI2               1196
+#define IDC_DMOCHORUSPHASE              1196
 #define IDC_TEMPOALG                    1197
 #define IDC_RESET                       1198
 #define IDC_PITCHALGO                   1199
@@ -198,19 +205,39 @@
 #define IDC_TEMPOALG2                   1201
 #define IDC_IIRQ1                       1201
 #define IDC_RESET2                      1202
+#define IDC_DMOCHORUSDELAYMS            1202
 #define IDC_PITCH_EDIT3                 1203
+#define IDC_DMOCHORUSDEPTHMS            1203
 #define IDC_PITCHINFO_UI6               1204
+#define IDC_DMOCHORUSLFOFREQ            1204
+#define IDC_DMOCHORUSDRYWET             1205
 #define IDC_TEMPOTYPE_UI3               1206
+#define IDC_DMOCHORUSDELAYLAB           1206
 #define IDC_RESET3                      1207
+#define IDC_DMOCHORUSDEPTHMSLAB         1207
+#define IDC_DMOCHORUSLFOFREQLAB         1208
+#define IDC_DMOCHORUSDRYWETLAB          1209
+#define IDC_DMOCHORUSDELAYMS2           1210
+#define IDC_DMOCHORUSDEPTHMS2           1211
+#define IDC_DMOCHORUSLFOFREQ2           1212
+#define IDC_DMOCHORUSDRYWET2            1213
+#define IDC_DMOCHORUSFEEDBACK2          1214
+#define IDC_DMOCHORUSWAVETYPE2          1215
+#define IDC_DMOCHORUSPHASE2             1216
+#define IDC_DMOCHORUSDELAYLAB2          1217
+#define IDC_DMOCHORUSDEPTHMSLAB2        1218
+#define IDC_DMOCHORUSLFOFREQLAB2        1219
+#define IDC_DMOCHORUSDRYWETLAB2         1220
+#define IDC_DMOCHORUSFEEDBACKLAB2       1221
 #define IDC_SLIDER                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        127
+#define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1202
+#define _APS_NEXT_CONTROL_VALUE         1222
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

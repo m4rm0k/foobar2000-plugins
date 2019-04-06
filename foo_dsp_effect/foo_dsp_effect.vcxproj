@@ -18,6 +18,7 @@
     <ProjectGuid>{B622CFC3-DA57-4E88-8DBF-2A1CFC8B76C7}</ProjectGuid>
     <RootNamespace>foo_dsp_freeverb</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -29,10 +30,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -70,14 +71,14 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FOO_DSP_TUTORIAL_EXPORTS;RANDOM_PREFIX=mylib;EXPORT=;OUTSIDE_SPEEX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shared.lib;msdmo.lib;dmoguids.lib;amstrmid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>C:\apps\foobar2000\components\foo_dsp_effect.dll</OutputFile>
       <AdditionalLibraryDirectories>..\shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -97,14 +98,14 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <FavorSizeOrSpeed>Size</FavorSizeOrSpeed>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalOptions>/Zi %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>..\shared\shared.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\shared\shared.lib;msdmo.lib;dmoguids.lib;amstrmid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>C:\apps\foobar2000\components\foo_dsp_effect.dll</OutputFile>
       <AdditionalLibraryDirectories>..\shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -121,7 +122,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dmodsp.cpp" />
     <ClCompile Include="dsp_chorus.cpp" />
+    <ClCompile Include="dsp_dmo.cpp" />
     <ClCompile Include="dsp_echo.cpp" />
     <ClCompile Include="dsp_freeverb.cpp" />
     <ClCompile Include="dsp_iir.cpp" />
@@ -160,6 +163,7 @@
   <ItemGroup>
     <ClInclude Include="..\foo_sample\resource.h" />
     <ClInclude Include="circular_buffer.h" />
+    <ClInclude Include="dmodsp.h" />
     <ClInclude Include="dsp_guids.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="echo.h" />
