@@ -1555,7 +1555,7 @@ private:
 			if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_pbrate, preset)) {
 				SetRateEnabled(true);
 				dsp_rate::parse_preset(rate, rate_enabled, preset);
-				SetRateEnabled(tempo_enabled);
+				SetRateEnabled(rate_enabled);
 				SetConfig();
 			}
 			else {
