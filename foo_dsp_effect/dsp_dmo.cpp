@@ -8,11 +8,13 @@ static void RunConfigPopupChorus(const dsp_preset & p_data, HWND p_parent, dsp_p
 
 static const GUID guid_dmo_chorus =
 { 0xb904dac3, 0x5dae, 0x4e9b,{ 0x96, 0xb5, 0x3d, 0x92, 0xbe, 0x33, 0xbf, 0x38 } };
-static const GUID guid_dmo_chorus_placement =
-{ 0x70fbae8f, 0x53c4, 0x4572,{ 0xbb, 0x3, 0x96, 0x91, 0xdb, 0x1b, 0x58, 0x22 } };
 // {4663F983-BD2A-4C3D-B651-1C17786FB9F6}
 static const GUID guid_dmo_compressor =
 { 0x4663f983, 0xbd2a, 0x4c3d, { 0xb6, 0x51, 0x1c, 0x17, 0x78, 0x6f, 0xb9, 0xf6 } };
+// {5ED5FE63-8F05-4F6C-A0CC-630B238012B7}
+static const GUID guid_dmo_distort =
+{ 0x5ed5fe63, 0x8f05, 0x4f6c, { 0xa0, 0xcc, 0x63, 0xb, 0x23, 0x80, 0x12, 0xb7 } };
+
 
 
 class dsp_dmo_chorus : public dsp_impl_base
@@ -353,9 +355,11 @@ private:
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_HANDLER_EX(IDC_CHORUSENABLED, BN_CLICKED, OnEnabledToggle)
 		MSG_WM_HSCROLL(OnScroll)
+		COMMAND_HANDLER_EX(IDC_DMOCHORUSWAVETYPE2, CBN_SELCHANGE, OnChange)
+		COMMAND_HANDLER_EX(IDC_DMOCHORUSPHASE2, CBN_SELCHANGE, OnChange)
 		END_MSG_MAP()
 
-
+	
 
 	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
 	HWND get_wnd() { return m_hWnd; }
@@ -583,10 +587,8 @@ private:
 		};
 		pfc::copy_array_loop_t(params, params2, kChorusNumParameters);
 
-
 		m_buttonEchoEnabled = GetDlgItem(IDC_DMOCHORUSENABLE);
 		m_ownEchoUpdate = false;
-
 		ApplySettings();
 		return FALSE;
 	}
@@ -650,3 +652,1234 @@ static void RunConfigPopupChorus(const dsp_preset & p_data, HWND p_parent, dsp_p
 }
 
 static dsp_factory_t<dsp_dmo_chorus> g_dsp_chorus_factory;
+
+static void RunConfigPopupCompressor(const dsp_preset& p_data, HWND p_parent, dsp_preset_edit_callback& p_callback);
+class dsp_dmo_compressor : public dsp_impl_base
+{
+	enum Parameters
+	{
+		kCompGain = 0,
+		kCompAttack,
+		kCompRelease,
+		kCompThreshold,
+		kCompRatio,
+		kCompPredelay,
+		kCompNumParameters
+	};
+	float m_param[kCompNumParameters];
+	int m_rate, m_ch, m_ch_mask;
+	bool enabled;
+	DMOFilter dmo_filt;
+public:
+	static GUID g_get_guid()
+	{
+		// {B904DAC3-5DAE-4E9B-96B5-3D92BE33BF38}
+		return guid_dmo_compressor;
+	}
+
+	dsp_dmo_compressor(dsp_preset const& in) :m_rate(0), m_ch(0), m_ch_mask(0)
+	{
+		parse_preset(m_param, enabled, in);
+		enabled = true;
+	}
+	~dsp_dmo_compressor()
+	{
+		dmo_filt.deinit();
+	}
+
+	static void g_get_name(pfc::string_base& p_out) { p_out = "Compressor (DirectX)"; }
+
+	bool on_chunk(audio_chunk* chunk, abort_callback&)
+	{
+		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
+		{
+			m_rate = chunk->get_srate();
+			m_ch = chunk->get_channels();
+			m_ch_mask = chunk->get_channel_config();
+			dmo_filt.deinit();
+			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			{
+				dmo_filt.init(m_rate, DMO_Type::COMPRESSOR, m_ch);
+				for (int i = 0; i < kCompNumParameters; i++)
+					dmo_filt.setparameter(i, m_param[i]);
+			}
+
+		}
+		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		{
+			audio_sample* data = chunk->get_data();
+			unsigned count = chunk->get_data_size();
+			dmo_filt.Process(data, count);
+		}
+
+
+		return true;
+	}
+
+	void on_endofplayback(abort_callback&) { }
+	void on_endoftrack(abort_callback&) { }
+
+	void flush()
+	{
+		dmo_filt.deinit();
+		m_rate = 0;
+		m_ch = 0;
+		m_ch_mask = 0;
+	}
+	double get_latency()
+	{
+		return 0;
+	}
+	bool need_track_change_mark()
+	{
+		return false;
+	}
+
+	static bool g_get_default_preset(dsp_preset & p_out)
+	{
+		float params[kCompNumParameters] =
+		{
+	   0.5f,
+	   0.02f,
+	  150.0f / 2950.0f,
+	  2.0f / 3.0f,
+	  0.02f,
+	  1.0f
+		};
+
+
+		make_preset(params, true, p_out);
+		return true;
+	}
+	static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
+	{
+		::RunConfigPopupCompressor(p_data, p_parent, p_callback);
+	}
+	static bool g_have_config_popup() { return true; }
+
+	static void make_preset(float params[kCompNumParameters], bool enabled, dsp_preset & out)
+	{
+		dsp_preset_builder builder;
+		for (int i = 0; i < kCompNumParameters; i++)
+			builder << params[i];
+		builder << enabled;
+		builder.finish(g_get_guid(), out);
+	}
+
+	static void parse_preset(float* params, bool& enabled, const dsp_preset & in)
+	{
+		try
+		{
+			dsp_preset_parser parser(in);
+			for (int i = 0; i < kCompNumParameters; i++)
+			{
+				parser >> params[i];
+			}
+			parser >> enabled;
+		}
+		catch (exception_io_data) {
+			params[kCompGain] = 0.5f;
+			params[kCompAttack] = 0.02f;
+			params[kCompRelease] = 150.0f / 2950.0f;
+			params[kCompThreshold] = 2.0f / 3.0f;
+			params[kCompRatio] = 0.02f;
+			params[kCompPredelay] = 1.0f;
+			enabled = true;
+		}
+	}
+};
+
+static dsp_factory_t<dsp_dmo_compressor> g_dsp_compressor_factory;
+
+class CMyDSPPopupCompressor : public CDialogImpl<CMyDSPPopupCompressor>
+{
+public:
+	CMyDSPPopupCompressor(const dsp_preset& initData, dsp_preset_edit_callback& callback) : m_initData(initData), m_callback(callback) { }
+	enum { IDD = IDD_DMOCOMPRESSOR };
+	enum
+	{
+		FreqMin = 0,
+		FreqMax = 2000,
+		FreqRangeTotal = FreqMax - FreqMin,
+		depthmin = 0,
+		depthmax = 100,
+	};
+
+	enum Parameters
+	{
+		kCompGain = 0,
+		kCompAttack,
+		kCompRelease,
+		kCompThreshold,
+		kCompRatio,
+		kCompPredelay,
+		kCompNumParameters
+	};
+
+	BEGIN_MSG_MAP(CMyDSPPopupCompressor)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		MSG_WM_HSCROLL(OnHScroll)
+	END_MSG_MAP()
+
+private:
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+
+		slider_gain = GetDlgItem(IDC_COMPRESSORGAIN);
+		slider_gain.SetRange(0, 100);
+		slider_attack = GetDlgItem(IDC_COMPRESSORATTACK);
+		slider_attack.SetRange(0, 100);
+		slider_release = GetDlgItem(IDC_COMPRESSORRELEASE);
+		slider_release.SetRange(0, 100);
+		slider_threshold = GetDlgItem(IDC_COMPRESSORTHRESHOLD);
+		slider_threshold.SetRange(0, 100);
+		slider_ratio = GetDlgItem(IDC_COMPRESSORRATIO);
+		slider_ratio.SetRange(0, 100);
+		slider_predelay = GetDlgItem(IDC_COMPRESSORPREDELAY);
+		slider_predelay.SetRange(0, 100);
+
+		bool enabled;
+		dsp_dmo_compressor::parse_preset(params, enabled, m_initData);
+		slider_gain.SetPos((double)(100 * params[kCompGain]));
+		slider_attack.SetPos((double)(100 * params[kCompAttack]));
+		slider_release.SetPos((double)(100 * params[kCompRelease]));
+		slider_threshold.SetPos((double)(100 * params[kCompThreshold]));
+		slider_ratio.SetPos((double)(100 * params[kCompRatio]));
+		slider_predelay.SetPos((double)(100 * params[kCompPredelay]));
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+		return TRUE;
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		EndDialog(id);
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		params[kCompGain] = slider_gain.GetPos() / 100.0;
+		params[kCompAttack] = slider_attack.GetPos() / 100.0;
+		params[kCompRelease] = slider_release.GetPos() / 100.0;
+		params[kCompThreshold] = slider_threshold.GetPos() / 100.0;
+		params[kCompRatio] = slider_ratio.GetPos() / 100.0;
+		params[kCompPredelay] = slider_predelay.GetPos() / 100.0;
+
+
+		dsp_preset_impl preset;
+		dsp_dmo_compressor::make_preset(params, true, preset);
+		m_callback.on_preset_changed(preset);
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+
+	}
+
+	void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar pScrollBar)
+	{
+		params[kCompGain] = slider_gain.GetPos() / 100.0;
+		params[kCompAttack] = slider_attack.GetPos() / 100.0;
+		params[kCompRelease] = slider_release.GetPos() / 100.0;
+		params[kCompThreshold] = slider_threshold.GetPos() / 100.0;
+		params[kCompRatio] = slider_ratio.GetPos() / 100.0;
+		params[kCompPredelay] = slider_predelay.GetPos() / 100.0;
+
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
+		{
+			dsp_preset_impl preset;
+			dsp_dmo_compressor::make_preset(params, true, preset);
+			m_callback.on_preset_changed(preset);
+		}
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+
+	}
+
+	void RefreshLabel(float gain_ms, float attack, float release, float thres, float ratio, float predelay)
+	{
+		pfc::string_formatter msg;
+		msg << "Gain: ";
+		msg << pfc::format_float(gain_ms, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORGAINLAB, msg);
+		msg.reset();
+		msg << "Attack: ";
+		msg << pfc::format_float(attack, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORATTACKLAB, msg);
+		msg.reset();
+		msg << "Release: ";
+		msg << pfc::format_float(release, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRELEASELAB, msg);
+		msg.reset();
+		msg << "Threshold : ";
+		msg << pfc::format_float(thres, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORTHRESHOLDLAB, msg);
+		msg.reset();
+		msg << "Ratio : ";
+		msg << pfc::format_float(ratio, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRATIOLAB, msg);
+		msg.reset();
+		msg << "Predelay : ";
+		msg << pfc::format_float(predelay, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORPREDELAYLAB, msg);
+	}
+
+	const dsp_preset& m_initData; // modal dialog so we can reference this caller-owned object.
+	dsp_preset_edit_callback& m_callback;
+	float params[kCompNumParameters];
+	CTrackBarCtrl slider_gain, slider_attack, slider_release, slider_threshold, slider_ratio, slider_predelay;
+};
+
+static void RunConfigPopupCompressor(const dsp_preset& p_data, HWND p_parent, dsp_preset_edit_callback& p_callback)
+{
+	CMyDSPPopupCompressor popup(p_data, p_callback);
+	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
+}
+
+// {042F153B-B5F2-44DE-94D7-170E4C491BFA}
+static const GUID guid_compressorelem =
+{ 0x42f153b, 0xb5f2, 0x44de, { 0x94, 0xd7, 0x17, 0xe, 0x4c, 0x49, 0x1b, 0xfa } };
+
+
+class uielem_compressor : public CDialogImpl<uielem_compressor>, public ui_element_instance {
+public:
+	uielem_compressor(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+		echo_enabled = true;
+	}
+	enum { IDD = IDD_DMOCOMPRESSOR1 };
+	enum
+	{
+		FreqMin = 0,
+		FreqMax = 2000,
+		FreqRangeTotal = FreqMax - FreqMin,
+		depthmin = 0,
+		depthmax = 100,
+	};
+
+	enum Parameters
+	{
+		kCompGain = 0,
+		kCompAttack,
+		kCompRelease,
+		kCompThreshold,
+		kCompRatio,
+		kCompPredelay,
+		kCompNumParameters
+	};
+
+	BEGIN_MSG_MAP(uielem_compressor)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDC_COMPRESSENABLE, BN_CLICKED, OnEnabledToggle)
+		MSG_WM_HSCROLL(OnScroll)
+	END_MSG_MAP()
+
+	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+	HWND get_wnd() { return m_hWnd; }
+	void set_configuration(ui_element_config::ptr config) {
+		shit = parseConfig(config);
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+		m_callback->on_min_max_info_change();
+	}
+	ui_element_config::ptr get_configuration() { return makeConfig(); }
+	static GUID g_get_guid() {
+		return guid_compressorelem;
+	}
+	static void g_get_name(pfc::string_base & out) { out = "Compressor (DirectX)"; }
+	static ui_element_config::ptr g_get_default_configuration() {
+		return makeConfig(true);
+	}
+	static const char* g_get_description() { return "Modifies the 'Compressor' DSP effect."; }
+	static GUID g_get_subclass() {
+		return ui_element_subclass_dsp;
+	}
+
+	ui_element_min_max_info get_min_max_info() {
+		ui_element_min_max_info ret;
+
+		// Note that we play nicely with separate horizontal & vertical DPI.
+		// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+		CSize DPI = QueryScreenDPIEx(*this);
+
+		if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+			DPI = CSize(96, 96);
+		}
+
+
+		ret.m_min_width = MulDiv(440, DPI.cx, 96);
+		ret.m_min_height = MulDiv(220, DPI.cy, 96);
+		ret.m_max_width = MulDiv(440, DPI.cx, 96);
+		ret.m_max_height = MulDiv(220, DPI.cy, 96);
+
+		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+		ret.adjustForWindow(*this);
+
+		return ret;
+	}
+
+private:
+	uint32_t shit;
+
+	static uint32_t parseConfig(ui_element_config::ptr cfg) {
+		return 1;
+
+	}
+	static ui_element_config::ptr makeConfig(bool init = false) {
+		ui_element_config_builder out;
+
+		if (init)
+		{
+			uint32_t crap = 1;
+			out << crap;
+		}
+		else
+		{
+			uint32_t crap = 2;
+			out << crap;
+		}
+		return out.finish(g_get_guid());
+	}
+
+	void SetEchoEnabled(bool state) { m_buttonEchoEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+	bool IsEchoEnabled() { return m_buttonEchoEnabled == NULL || m_buttonEchoEnabled.GetCheck() == BST_CHECKED; }
+
+	void EchoDisable() {
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+	}
+
+	void EchoEnable(float params[], bool echo_enabled) {
+		dsp_preset_impl preset;
+		dsp_dmo_compressor::make_preset(params, echo_enabled, preset);
+		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+	}
+
+	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		if (IsEchoEnabled()) {
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_dmo_compressor::make_preset(params, echo_enabled, preset);
+			//yes change api;
+			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+		}
+		else {
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+		}
+
+	}
+
+	void ApplySettings()
+	{
+		dsp_preset_impl preset;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_dmo_compressor, preset)) {
+			SetEchoEnabled(true);
+			dsp_dmo_compressor::parse_preset(params, echo_enabled, preset);
+			SetEchoEnabled(echo_enabled);
+			SetConfig();
+		}
+		else {
+			SetEchoEnabled(false);
+			SetConfig();
+		}
+	}
+
+
+	void GetConfig()
+	{
+		params[kCompGain] = slider_gain.GetPos() / 100.0;
+		params[kCompAttack] = slider_attack.GetPos() / 100.0;
+		params[kCompRelease] = slider_release.GetPos() / 100.0;
+		params[kCompThreshold] = slider_threshold.GetPos() / 100.0;
+		params[kCompRatio] = slider_ratio.GetPos() / 100.0;
+		params[kCompPredelay] = slider_predelay.GetPos() / 100.0;
+		echo_enabled = IsEchoEnabled();
+
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+	}
+
+	void SetConfig()
+	{
+		slider_gain.SetPos((double)(100 * params[kCompGain]));
+		slider_attack.SetPos((double)(100 * params[kCompAttack]));
+		slider_release.SetPos((double)(100 * params[kCompRelease]));
+		slider_threshold.SetPos((double)(100 * params[kCompThreshold]));
+		slider_ratio.SetPos((double)(100 * params[kCompRatio]));
+		slider_predelay.SetPos((double)(100 * params[kCompPredelay]));
+
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+	}
+
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+
+		modeless_dialog_manager::g_add(m_hWnd);
+		m_buttonEchoEnabled = GetDlgItem(IDC_COMPRESSENABLE);
+		m_buttonEchoEnabled.ShowWindow(SW_SHOW);
+
+
+		slider_gain = GetDlgItem(IDC_COMPRESSORGAIN2);
+		slider_gain.SetRange(0, 100);
+		slider_attack = GetDlgItem(IDC_COMPRESSORATTACK2);
+		slider_attack.SetRange(0, 100);
+		slider_release = GetDlgItem(IDC_COMPRESSORRELEASE2);
+		slider_release.SetRange(0, 100);
+		slider_threshold = GetDlgItem(IDC_COMPRESSORTHRESHOLD2);
+		slider_threshold.SetRange(0, 100);
+		slider_ratio = GetDlgItem(IDC_COMPRESSORRATIO2);
+		slider_ratio.SetRange(0, 100);
+		slider_predelay = GetDlgItem(IDC_COMPRESSORPREDELAY2);
+		slider_predelay.SetRange(0, 100);
+
+
+		float params2[kCompNumParameters] =
+		{
+		0.5f,
+		0.02f,
+	   150.0f / 2950.0f,
+		2.0f / 3.0f,
+		0.02f,
+		1.0f
+		};
+		pfc::copy_array_loop_t(params, params2, kCompNumParameters);
+
+		ApplySettings();
+		return TRUE;
+	}
+
+	void OnConfigChanged() {
+		if (IsEchoEnabled()) {
+			EchoEnable(params, echo_enabled);
+		}
+		else {
+			EchoDisable();
+		}
+
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		DestroyWindow();
+	}
+
+
+	void OnScroll(UINT scrollID, int pos, CWindow window)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		GetConfig();
+		if (IsEchoEnabled())
+		{
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
+			{
+				EchoEnable(params, echo_enabled);
+			}
+		}
+
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		GetConfig();
+		if (IsEchoEnabled())
+		{
+			OnConfigChanged();
+		}
+	}
+
+	void RefreshLabel(float gain_ms, float attack, float release, float thres, float ratio, float predelay)
+	{
+		pfc::string_formatter msg;
+		msg << "Gain: ";
+		msg << pfc::format_float(gain_ms, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORGAINLAB2, msg);
+		msg.reset();
+		msg << "Attack: ";
+		msg << pfc::format_float(attack, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORATTACKLAB2, msg);
+		msg.reset();
+		msg << "Release: ";
+		msg << pfc::format_float(release, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRELEASELAB2, msg);
+		msg.reset();
+		msg << "Threshold : ";
+		msg << pfc::format_float(thres, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORTHRESHOLDLAB2, msg);
+		msg.reset();
+		msg << "Ratio : ";
+		msg << pfc::format_float(ratio, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRATIOLAB2, msg);
+		msg.reset();
+		msg << "Predelay : ";
+		msg << pfc::format_float(predelay, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORPREDELAYLAB2, msg);
+
+	}
+	bool m_ownEchoUpdate;
+	float params[kCompNumParameters];
+	CTrackBarCtrl slider_gain, slider_attack, slider_release, slider_threshold, slider_ratio, slider_predelay;
+	CButton m_buttonEchoEnabled;
+	bool echo_enabled;
+protected:
+	const ui_element_instance_callback::ptr m_callback;
+};
+
+class myElem_t3 : public  ui_element_impl_withpopup< uielem_compressor > {
+	bool get_element_group(pfc::string_base& p_out)
+	{
+		p_out = "Effect DSP";
+		return true;
+	}
+
+	bool get_menu_command_description(pfc::string_base& out) {
+		out = "Opens a window for dynamics compression.";
+		return true;
+	}
+
+};
+static service_factory_single_t<myElem_t3> g_myElemFactory2;
+
+static void RunConfigPopupDistort(const dsp_preset& p_data, HWND p_parent, dsp_preset_edit_callback& p_callback);
+class dsp_dmo_distort : public dsp_impl_base
+{
+	enum Parameters
+	{
+		kDistGain = 0,
+		kDistEdge,
+		kDistPreLowpassCutoff,
+		kDistPostEQCenterFrequency,
+		kDistPostEQBandwidth,
+		kDistNumParameters
+	};
+	float m_param[kDistNumParameters];
+	int m_rate, m_ch, m_ch_mask;
+	bool enabled;
+	DMOFilter dmo_filt;
+public:
+	static GUID g_get_guid()
+	{
+		// {B904DAC3-5DAE-4E9B-96B5-3D92BE33BF38}
+		return guid_dmo_distort;
+	}
+
+	dsp_dmo_distort(dsp_preset const& in) :m_rate(0), m_ch(0), m_ch_mask(0)
+	{
+		parse_preset(m_param, enabled, in);
+		enabled = true;
+	}
+	~dsp_dmo_distort()
+	{
+		dmo_filt.deinit();
+	}
+
+	static void g_get_name(pfc::string_base& p_out) { p_out = "Distortion (DirectX)"; }
+
+	bool on_chunk(audio_chunk* chunk, abort_callback&)
+	{
+		if (chunk->get_srate() != m_rate || chunk->get_channels() != m_ch || chunk->get_channel_config() != m_ch_mask)
+		{
+			m_rate = chunk->get_srate();
+			m_ch = chunk->get_channels();
+			m_ch_mask = chunk->get_channel_config();
+			dmo_filt.deinit();
+			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			{
+				dmo_filt.init(m_rate, DMO_Type::DISTORTION, m_ch);
+				for (int i = 0; i < kDistNumParameters; i++)
+					dmo_filt.setparameter(i, m_param[i]);
+			}
+
+		}
+		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		{
+			audio_sample* data = chunk->get_data();
+			unsigned count = chunk->get_data_size();
+			dmo_filt.Process(data, count);
+		}
+
+
+		return true;
+	}
+
+	void on_endofplayback(abort_callback&) { }
+	void on_endoftrack(abort_callback&) { }
+
+	void flush()
+	{
+		dmo_filt.deinit();
+		m_rate = 0;
+		m_ch = 0;
+		m_ch_mask = 0;
+	}
+	double get_latency()
+	{
+		return 0;
+	}
+	bool need_track_change_mark()
+	{
+		return false;
+	}
+
+	static bool g_get_default_preset(dsp_preset & p_out)
+	{
+		float params[kDistNumParameters] =
+		{
+	   0.7f,
+	   0.15f,
+	  1.0f,
+	  0.29f,
+	  0.29
+		};
+
+
+		make_preset(params, true, p_out);
+		return true;
+	}
+	static void g_show_config_popup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback)
+	{
+		::RunConfigPopupDistort(p_data, p_parent, p_callback);
+	}
+	static bool g_have_config_popup() { return true; }
+
+	static void make_preset(float params[kDistNumParameters], bool enabled, dsp_preset & out)
+	{
+		dsp_preset_builder builder;
+		for (int i = 0; i < kDistNumParameters; i++)
+			builder << params[i];
+		builder << enabled;
+		builder.finish(g_get_guid(), out);
+	}
+
+	static void parse_preset(float* params, bool& enabled, const dsp_preset & in)
+	{
+		try
+		{
+			dsp_preset_parser parser(in);
+			for (int i = 0; i < kDistNumParameters; i++)
+			{
+				parser >> params[i];
+			}
+			parser >> enabled;
+		}
+		catch (exception_io_data) {
+
+			params[kDistGain] = 0.7f;
+			params[kDistEdge] = 0.15f;
+			params[kDistPreLowpassCutoff] = 1.0f;
+			params[kDistPostEQCenterFrequency] = 0.291f;
+			params[kDistPostEQBandwidth] = 0.291f;
+			enabled = true;
+		}
+	}
+};
+
+static dsp_factory_t<dsp_dmo_distort> g_dsp_distort_factory;
+
+class CMyDSPPopupDistort : public CDialogImpl<CMyDSPPopupDistort>
+{
+public:
+	CMyDSPPopupDistort(const dsp_preset& initData, dsp_preset_edit_callback& callback) : m_initData(initData), m_callback(callback) { }
+	enum { IDD = IDD_DMODISTORTION };
+	enum
+	{
+		FreqMin = 0,
+		FreqMax = 2000,
+		FreqRangeTotal = FreqMax - FreqMin,
+		depthmin = 0,
+		depthmax = 100,
+	};
+
+	enum Parameters
+	{
+		kDistGain = 0,
+		kDistEdge,
+		kDistPreLowpassCutoff,
+		kDistPostEQCenterFrequency,
+		kDistPostEQBandwidth,
+		kDistNumParameters
+	};
+
+	BEGIN_MSG_MAP(CMyDSPPopupDistort)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		MSG_WM_HSCROLL(OnHScroll)
+	END_MSG_MAP()
+
+private:
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+		slider_gain = GetDlgItem(IDC_DISTORTIONGAIN);
+		slider_gain.SetRange(0, 100);
+		slider_edge = GetDlgItem(IDC_DISTORTIONEDGE);
+		slider_edge.SetRange(0, 100);
+		slider_prelopass = GetDlgItem(IDC_DISTORTIONPRELOPASSCUTOFF);
+		slider_prelopass.SetRange(0, 100);
+		slider_posteqcentrefreq = GetDlgItem(IDC_DISTORTIONPOSTEQCENTERFREQ);
+		slider_posteqcentrefreq.SetRange(0, 100);
+		slider_posteqbandwidth = GetDlgItem(IDC_DISTORTIONPOSTEQBANDWIDTH);
+		slider_posteqbandwidth.SetRange(0, 100);
+
+		bool enabled;
+		dsp_dmo_distort::parse_preset(params, enabled, m_initData);
+		slider_gain.SetPos((double)(100 * params[kDistGain]));
+		slider_edge.SetPos((double)(100 * params[kDistEdge]));
+		slider_prelopass.SetPos((double)(100 * params[kDistPreLowpassCutoff]));
+		slider_posteqcentrefreq.SetPos((double)(100 * params[kDistPostEQCenterFrequency]));
+		slider_posteqbandwidth.SetPos((double)(100 * params[kDistPostEQBandwidth]));
+
+
+		float gain = -60.0f + params[kDistGain] * 60.0f;
+		float edge = params[kDistEdge] * 100.f;
+		float prelowpass = 100.0f + params[kDistPreLowpassCutoff] * 7900.0f;
+		float postcentrefreq = 100.0f + params[kDistPostEQCenterFrequency] * 7900.0f;
+		float posteqbandwith = 100.0f + params[kDistPostEQBandwidth] * 7900.0f;
+		RefreshLabel(gain, edge, prelowpass, postcentrefreq, posteqbandwith);
+		return TRUE;
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		EndDialog(id);
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		params[kDistGain] = slider_gain.GetPos() / 100.0;
+		params[kDistEdge] = slider_edge.GetPos() / 100.0;
+		params[kDistPreLowpassCutoff] = slider_prelopass.GetPos() / 100.0;
+		params[kDistPostEQCenterFrequency] = slider_posteqcentrefreq.GetPos() / 100.0;
+		params[kDistPostEQBandwidth] = slider_posteqbandwidth.GetPos() / 100.0;
+
+
+		dsp_preset_impl preset;
+		dsp_dmo_distort::make_preset(params, true, preset);
+		m_callback.on_preset_changed(preset);
+		
+
+		float gain = -60.0f + params[kDistGain] * 60.0f;
+		float edge = params[kDistEdge] * 100.f;
+		float prelowpass = 100.0f + params[kDistPreLowpassCutoff] * 7900.0f;
+		float postcentrefreq = 100.0f + params[kDistPostEQCenterFrequency] * 7900.0f;
+		float posteqbandwith = 100.0f + params[kDistPostEQBandwidth] * 7900.0f;
+
+		RefreshLabel(gain, edge, prelowpass, postcentrefreq, posteqbandwith);
+	}
+
+	void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar pScrollBar)
+	{
+		params[kDistGain] = slider_gain.GetPos() / 100.0;
+		params[kDistEdge] = slider_edge.GetPos() / 100.0;
+		params[kDistPreLowpassCutoff] = slider_prelopass.GetPos() / 100.0;
+		params[kDistPostEQCenterFrequency] = slider_posteqcentrefreq.GetPos() / 100.0;
+		params[kDistPostEQBandwidth] = slider_posteqbandwidth.GetPos() / 100.0;
+
+		if (LOWORD(nSBCode) != SB_THUMBTRACK)
+		{
+			dsp_preset_impl preset;
+			dsp_dmo_distort::make_preset(params, true, preset);
+			m_callback.on_preset_changed(preset);
+		}
+		float gain = -60.0f + params[kDistGain] * 60.0f;
+		float edge = params[kDistEdge] * 100.f;
+		float prelowpass = 100.0f + params[kDistPreLowpassCutoff] * 7900.0f;
+		float postcentrefreq = 100.0f + params[kDistPostEQCenterFrequency] * 7900.0f;
+		float posteqbandwith = 100.0f + params[kDistPostEQBandwidth] * 7900.0f;
+
+		RefreshLabel(gain, edge, prelowpass, postcentrefreq, posteqbandwith);
+
+	}
+
+	void RefreshLabel(float gain, float edge, float prelowpass, float postcentrefreq, float posteqbandwidth)
+	{
+		pfc::string_formatter msg;
+		msg << "Gain: ";
+		msg << pfc::format_float(gain, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_DISTORTIONGAINLAB, msg);
+		msg.reset();
+		msg << "Edge: ";
+		msg << pfc::format_float(edge, 0, 2) << " %";
+		::uSetDlgItemText(*this, IDC_DISTORTIONEDGELAB, msg);
+		msg.reset();
+		msg << "Pre-lowpass cutoff: ";
+		msg << pfc::format_float(prelowpass, 0, 2) << " Hz";
+		::uSetDlgItemText(*this, IDC_DISTORTIONCUTOFFLAB, msg);
+		msg.reset();
+		msg << "Post-EQ Centre Freq : ";
+		msg << pfc::format_float(postcentrefreq, 0, 2) << " Hz";
+		::uSetDlgItemText(*this, IDC_DISTORTIONCENTFREQ, msg);
+		msg.reset();
+		msg << "Post-EQ Bandwidth : ";
+		msg << pfc::format_float(posteqbandwidth, 0, 2) << " Hz";
+		::uSetDlgItemText(*this, IDC_DISTORTIONEPOSTEQBW, msg);
+		msg.reset();
+	}
+
+	const dsp_preset& m_initData; // modal dialog so we can reference this caller-owned object.
+	dsp_preset_edit_callback& m_callback;
+	float params[kDistNumParameters];
+	CTrackBarCtrl slider_gain, slider_edge, slider_prelopass, slider_posteqcentrefreq, slider_posteqbandwidth;
+};
+
+static void RunConfigPopupDistort(const dsp_preset& p_data, HWND p_parent, dsp_preset_edit_callback& p_callback)
+{
+	CMyDSPPopupDistort popup(p_data, p_callback);
+	if (popup.DoModal(p_parent) != IDOK) p_callback.on_preset_changed(p_data);
+}
+
+// {042F153B-B5F2-44DE-94D7-170E4C491BFA}
+static const GUID guid_distortelem =
+{ 0x3ac3a59a, 0x3ea3, 0x4b88, { 0xa1, 0xd0, 0x97, 0xff, 0x9c, 0xba, 0xdd, 0x83 } };
+
+
+
+class uielem_distort : public CDialogImpl<uielem_distort>, public ui_element_instance {
+public:
+	uielem_distort(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb) {
+		echo_enabled = true;
+	}
+	enum { IDD = IDD_DMODISTORTION1 };
+	enum
+	{
+		FreqMin = 0,
+		FreqMax = 2000,
+		FreqRangeTotal = FreqMax - FreqMin,
+		depthmin = 0,
+		depthmax = 100,
+	};
+
+	enum Parameters
+	{
+		kCompGain = 0,
+		kCompAttack,
+		kCompRelease,
+		kCompThreshold,
+		kCompRatio,
+		kCompPredelay,
+		kCompNumParameters
+	};
+
+	BEGIN_MSG_MAP(uielem_distort)
+		MSG_WM_INITDIALOG(OnInitDialog)
+		COMMAND_HANDLER_EX(IDOK, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDCANCEL, BN_CLICKED, OnButton)
+		COMMAND_HANDLER_EX(IDC_COMPRESSENABLE, BN_CLICKED, OnEnabledToggle)
+		MSG_WM_HSCROLL(OnScroll)
+	END_MSG_MAP()
+
+	void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
+	HWND get_wnd() { return m_hWnd; }
+	void set_configuration(ui_element_config::ptr config) {
+		shit = parseConfig(config);
+		if (m_hWnd != NULL) {
+			ApplySettings();
+		}
+		m_callback->on_min_max_info_change();
+	}
+	ui_element_config::ptr get_configuration() { return makeConfig(); }
+	static GUID g_get_guid() {
+		return guid_distortelem;
+	}
+	static void g_get_name(pfc::string_base & out) { out = "Distortion (DirectX)"; }
+	static ui_element_config::ptr g_get_default_configuration() {
+		return makeConfig(true);
+	}
+	static const char* g_get_description() { return "Modifies the 'Distortion' DSP effect."; }
+	static GUID g_get_subclass() {
+		return ui_element_subclass_dsp;
+	}
+
+	ui_element_min_max_info get_min_max_info() {
+		ui_element_min_max_info ret;
+
+		// Note that we play nicely with separate horizontal & vertical DPI.
+		// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
+		CSize DPI = QueryScreenDPIEx(*this);
+
+		if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
+			DPI = CSize(96, 96);
+		}
+
+
+		ret.m_min_width = MulDiv(440, DPI.cx, 96);
+		ret.m_min_height = MulDiv(220, DPI.cy, 96);
+		ret.m_max_width = MulDiv(440, DPI.cx, 96);
+		ret.m_max_height = MulDiv(220, DPI.cy, 96);
+
+		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
+		ret.adjustForWindow(*this);
+
+		return ret;
+	}
+
+private:
+	uint32_t shit;
+
+	static uint32_t parseConfig(ui_element_config::ptr cfg) {
+		return 1;
+
+	}
+	static ui_element_config::ptr makeConfig(bool init = false) {
+		ui_element_config_builder out;
+
+		if (init)
+		{
+			uint32_t crap = 1;
+			out << crap;
+		}
+		else
+		{
+			uint32_t crap = 2;
+			out << crap;
+		}
+		return out.finish(g_get_guid());
+	}
+
+	void SetEchoEnabled(bool state) { m_buttonEchoEnabled.SetCheck(state ? BST_CHECKED : BST_UNCHECKED); }
+	bool IsEchoEnabled() { return m_buttonEchoEnabled == NULL || m_buttonEchoEnabled.GetCheck() == BST_CHECKED; }
+
+	void EchoDisable() {
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+	}
+
+	void EchoEnable(float params[], bool echo_enabled) {
+		dsp_preset_impl preset;
+		dsp_dmo_compressor::make_preset(params, echo_enabled, preset);
+		static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+	}
+
+	void OnEnabledToggle(UINT uNotifyCode, int nID, CWindow wndCtl) {
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		if (IsEchoEnabled()) {
+			GetConfig();
+			dsp_preset_impl preset;
+			dsp_dmo_compressor::make_preset(params, echo_enabled, preset);
+			//yes change api;
+			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
+		}
+		else {
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+		}
+
+	}
+
+	void ApplySettings()
+	{
+		dsp_preset_impl preset;
+		if (static_api_ptr_t<dsp_config_manager>()->core_query_dsp(guid_dmo_compressor, preset)) {
+			SetEchoEnabled(true);
+			dsp_dmo_compressor::parse_preset(params, echo_enabled, preset);
+			SetEchoEnabled(echo_enabled);
+			SetConfig();
+		}
+		else {
+			SetEchoEnabled(false);
+			SetConfig();
+		}
+	}
+
+
+	void GetConfig()
+	{
+		params[kCompGain] = slider_gain.GetPos() / 100.0;
+		params[kCompAttack] = slider_attack.GetPos() / 100.0;
+		params[kCompRelease] = slider_release.GetPos() / 100.0;
+		params[kCompThreshold] = slider_threshold.GetPos() / 100.0;
+		params[kCompRatio] = slider_ratio.GetPos() / 100.0;
+		params[kCompPredelay] = slider_predelay.GetPos() / 100.0;
+		echo_enabled = IsEchoEnabled();
+
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+	}
+
+	void SetConfig()
+	{
+		slider_gain.SetPos((double)(100 * params[kCompGain]));
+		slider_attack.SetPos((double)(100 * params[kCompAttack]));
+		slider_release.SetPos((double)(100 * params[kCompRelease]));
+		slider_threshold.SetPos((double)(100 * params[kCompThreshold]));
+		slider_ratio.SetPos((double)(100 * params[kCompRatio]));
+		slider_predelay.SetPos((double)(100 * params[kCompPredelay]));
+
+		float gain = -60.0f + params[kCompGain] * 120.0f;
+		float attack = 0.01f + params[kCompAttack] * 499.99f;
+		float release = 50.0f + params[kCompRelease] * 2950.0f;
+		float thres = -60.0f + params[kCompThreshold] * 60.0f;
+		float ratio = 1.0f + params[kCompRatio] * 99.0f;
+		float predelay = params[kCompPredelay] * 4.0f;
+
+		RefreshLabel(gain, attack, release, thres, ratio, predelay);
+	}
+
+
+	BOOL OnInitDialog(CWindow, LPARAM)
+	{
+
+		modeless_dialog_manager::g_add(m_hWnd);
+		m_buttonEchoEnabled = GetDlgItem(IDC_COMPRESSENABLE);
+		m_buttonEchoEnabled.ShowWindow(SW_SHOW);
+
+
+		slider_gain = GetDlgItem(IDC_COMPRESSORGAIN2);
+		slider_gain.SetRange(0, 100);
+		slider_attack = GetDlgItem(IDC_COMPRESSORATTACK2);
+		slider_attack.SetRange(0, 100);
+		slider_release = GetDlgItem(IDC_COMPRESSORRELEASE2);
+		slider_release.SetRange(0, 100);
+		slider_threshold = GetDlgItem(IDC_COMPRESSORTHRESHOLD2);
+		slider_threshold.SetRange(0, 100);
+		slider_ratio = GetDlgItem(IDC_COMPRESSORRATIO2);
+		slider_ratio.SetRange(0, 100);
+		slider_predelay = GetDlgItem(IDC_COMPRESSORPREDELAY2);
+		slider_predelay.SetRange(0, 100);
+
+
+		float params2[kCompNumParameters] =
+		{
+		0.5f,
+		0.02f,
+	   150.0f / 2950.0f,
+		2.0f / 3.0f,
+		0.02f,
+		1.0f
+		};
+		pfc::copy_array_loop_t(params, params2, kCompNumParameters);
+
+		ApplySettings();
+		return TRUE;
+	}
+
+	void OnConfigChanged() {
+		if (IsEchoEnabled()) {
+			EchoEnable(params, echo_enabled);
+		}
+		else {
+			EchoDisable();
+		}
+
+	}
+
+	void OnButton(UINT, int id, CWindow)
+	{
+		DestroyWindow();
+	}
+
+
+	void OnScroll(UINT scrollID, int pos, CWindow window)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		GetConfig();
+		if (IsEchoEnabled())
+		{
+			if (LOWORD(scrollID) != SB_THUMBTRACK)
+			{
+				EchoEnable(params, echo_enabled);
+			}
+		}
+
+	}
+
+	void OnChange(UINT, int id, CWindow)
+	{
+		pfc::vartoggle_t<bool> ownUpdate(m_ownEchoUpdate, true);
+		GetConfig();
+		if (IsEchoEnabled())
+		{
+			OnConfigChanged();
+		}
+	}
+
+	void RefreshLabel(float gain_ms, float attack, float release, float thres, float ratio, float predelay)
+	{
+		pfc::string_formatter msg;
+		msg << "Gain: ";
+		msg << pfc::format_float(gain_ms, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORGAINLAB2, msg);
+		msg.reset();
+		msg << "Attack: ";
+		msg << pfc::format_float(attack, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORATTACKLAB2, msg);
+		msg.reset();
+		msg << "Release: ";
+		msg << pfc::format_float(release, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRELEASELAB2, msg);
+		msg.reset();
+		msg << "Threshold : ";
+		msg << pfc::format_float(thres, 0, 2) << " db";
+		::uSetDlgItemText(*this, IDC_COMPRESSORTHRESHOLDLAB2, msg);
+		msg.reset();
+		msg << "Ratio : ";
+		msg << pfc::format_float(ratio, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORRATIOLAB2, msg);
+		msg.reset();
+		msg << "Predelay : ";
+		msg << pfc::format_float(predelay, 0, 2) << " ms";
+		::uSetDlgItemText(*this, IDC_COMPRESSORPREDELAYLAB2, msg);
+
+	}
+	bool m_ownEchoUpdate;
+	float params[kCompNumParameters];
+	CTrackBarCtrl slider_gain, slider_attack, slider_release, slider_threshold, slider_ratio, slider_predelay;
+	CButton m_buttonEchoEnabled;
+	bool echo_enabled;
+protected:
+	const ui_element_instance_callback::ptr m_callback;
+};
+
+class myElem_t3 : public  ui_element_impl_withpopup< uielem_compressor > {
+	bool get_element_group(pfc::string_base& p_out)
+	{
+		p_out = "Effect DSP";
+		return true;
+	}
+
+	bool get_menu_command_description(pfc::string_base& out) {
+		out = "Opens a window for dynamics compression.";
+		return true;
+	}
+
+};
+static service_factory_single_t<myElem_t3> g_myElemFactory2;
