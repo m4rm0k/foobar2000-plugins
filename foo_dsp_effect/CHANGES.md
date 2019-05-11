@@ -10,6 +10,9 @@
 * Fixed playback rate setting (beta 4)
 * Added DirectX based audio compressor (beta 4)
 * Added DirectX based chorus effect (beta 4)
+* Added DirectX based distortion effect (beta 5)
+* Added DirectX based gargle effect (beta 5)
+* Added DirectX based reverb effect (beta 5)
 
 0.35
 * Added reset functionality to pitch/rate/tempo DSPs
