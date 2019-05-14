@@ -69,7 +69,7 @@ public:
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
 			dmo_filt.deinit();
-			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			if (m_ch <=  2)
 			{
 				dmo_filt.init(m_rate, DMO_Type::CHORUS, m_ch);
 				for (int i = 0; i < kChorusNumParameters; i++)
@@ -77,7 +77,7 @@ public:
 			}
 			
 		}
-		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		if (m_ch <= 2)
 		{
 			audio_sample * data = chunk->get_data();
 			unsigned count = chunk->get_data_size();
@@ -704,7 +704,7 @@ public:
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
 			dmo_filt.deinit();
-			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			if (m_ch <= 2)
 			{
 				dmo_filt.init(m_rate, DMO_Type::COMPRESSOR, m_ch);
 				for (int i = 0; i < kCompNumParameters; i++)
@@ -712,7 +712,7 @@ public:
 			}
 
 		}
-		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		if (m_ch <= 2)
 		{
 			audio_sample* data = chunk->get_data();
 			unsigned count = chunk->get_data_size();
@@ -1326,7 +1326,7 @@ public:
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
 			dmo_filt.deinit();
-			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			if (m_ch <= 2)
 			{
 				dmo_filt.init(m_rate, DMO_Type::DISTORTION, m_ch);
 				for (int i = 0; i < kDistNumParameters; i++)
@@ -1334,7 +1334,7 @@ public:
 			}
 
 		}
-		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		if (m_ch <= 2)
 		{
 			audio_sample* data = chunk->get_data();
 			unsigned count = chunk->get_data_size();
@@ -1919,7 +1919,7 @@ public:
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
 			dmo_filt.deinit();
-			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			if (m_ch <= 2)
 			{
 				dmo_filt.init(m_rate, DMO_Type::GARGLE, m_ch);
 				for (int i = 0; i < kEqNumParameters; i++)
@@ -1927,7 +1927,7 @@ public:
 			}
 
 		}
-		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		if (m_ch <= 2)
 		{
 			audio_sample* data = chunk->get_data();
 			unsigned count = chunk->get_data_size();
@@ -2411,7 +2411,7 @@ public:
 			m_ch = chunk->get_channels();
 			m_ch_mask = chunk->get_channel_config();
 			dmo_filt.deinit();
-			if (m_ch_mask <= audio_chunk::channel_config_stereo)
+			if (m_ch <= 2)
 			{
 				dmo_filt.init(m_rate, DMO_Type::REVERBWAVES, m_ch);
 				for (int i = 0; i < kDistNumParameters; i++)
@@ -2419,7 +2419,7 @@ public:
 			}
 
 		}
-		if (m_ch_mask <= audio_chunk::channel_config_stereo)
+		if (m_ch <= 2)
 		{
 			audio_sample* data = chunk->get_data();
 			unsigned count = chunk->get_data_size();
