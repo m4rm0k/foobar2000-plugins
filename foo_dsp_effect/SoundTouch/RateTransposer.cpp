@@ -10,13 +10,6 @@
 ///
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Last changed  : $Date: 2017-09-07 17:04:02 +0000 (Thu, 07 Sep 2017) $
-// File revision : $Revision: 4 $
-//
-// $Id: RateTransposer.cpp 258 2017-09-07 17:04:02Z oparviai $
-//
-////////////////////////////////////////////////////////////////////////////////
-//
 // License :
 //
 //  SoundTouch audio processing library
@@ -71,13 +64,11 @@ RateTransposer::RateTransposer() : FIFOProcessor(&outputBuffer)
 }
 
 
-
 RateTransposer::~RateTransposer()
 {
     delete pAAFilter;
     delete pTransposer;
 }
-
 
 
 /// Enables/disables the anti-alias filter. Zero to disable, nonzero to enable
@@ -101,7 +92,6 @@ AAFilter *RateTransposer::getAAFilter()
 {
     return pAAFilter;
 }
-
 
 
 // Sets new target iRate. Normal iRate = 1.0, smaller values represent slower 
@@ -186,11 +176,10 @@ void RateTransposer::processSamples(const SAMPLETYPE *src, uint nSamples)
 // Sets the number of channels, 1 = mono, 2 = stereo
 void RateTransposer::setChannels(int nChannels)
 {
-    assert(nChannels > 0);
+    if (!verifyNumberOfChannels(nChannels) ||
+        (pTransposer->numChannels == nChannels)) return;
 
-    if (pTransposer->numChannels == nChannels) return;
     pTransposer->setChannels(nChannels);
-
     inputBuffer.setChannels(nChannels);
     midBuffer.setChannels(nChannels);
     outputBuffer.setChannels(nChannels);
@@ -296,7 +285,7 @@ void TransposerBase::setRate(double newRate)
 TransposerBase *TransposerBase::newInstance()
 {
 #ifdef SOUNDTOUCH_INTEGER_SAMPLES
-    // Notice: For integer arithmetics support only linear algorithm (due to simplest calculus)
+    // Notice: For integer arithmetic support only linear algorithm (due to simplest calculus)
     return ::new InterpolateLinearInteger;
 #else
     switch (algorithm)

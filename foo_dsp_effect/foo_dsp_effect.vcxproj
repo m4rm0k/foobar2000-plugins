@@ -62,7 +62,7 @@
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Template|Win32'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Template|Win32'" />
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\codecrack\wtl\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">C:\codecrack\wtl;$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\codecrack\wtl;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -171,18 +171,13 @@
     <ClInclude Include="iirfilters.h" />
     <ClInclude Include="phaser.h" />
     <ClInclude Include="SoundTouch\AAFilter.h" />
-    <ClInclude Include="SoundTouch\BPMDetect.h" />
     <ClInclude Include="SoundTouch\cpu_detect.h" />
-    <ClInclude Include="SoundTouch\FIFOSampleBuffer.h" />
-    <ClInclude Include="SoundTouch\FIFOSamplePipe.h" />
     <ClInclude Include="SoundTouch\FIRFilter.h" />
     <ClInclude Include="SoundTouch\InterpolateCubic.h" />
     <ClInclude Include="SoundTouch\InterpolateLinear.h" />
     <ClInclude Include="SoundTouch\InterpolateShannon.h" />
     <ClInclude Include="SoundTouch\PeakFinder.h" />
     <ClInclude Include="SoundTouch\RateTransposer.h" />
-    <ClInclude Include="SoundTouch\SoundTouch.h" />
-    <ClInclude Include="SoundTouch\STTypes.h" />
     <ClInclude Include="SoundTouch\TDStretch.h" />
     <ClInclude Include="wahwah.h" />
   </ItemGroup>

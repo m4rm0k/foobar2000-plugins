@@ -23,6 +23,11 @@
       <Filter>DSP</Filter>
     </ClCompile>
     <ClCompile Include="dsp_soundtouch.cpp" />
+    <ClCompile Include="dsp_chorus.cpp" />
+    <ClCompile Include="dsp_tremelo.cpp" />
+    <ClCompile Include="dsp_vibrato.cpp" />
+    <ClCompile Include="dmodsp.cpp" />
+    <ClCompile Include="dsp_dmo.cpp" />
     <ClCompile Include="SoundTouch\AAFilter.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
@@ -65,9 +70,6 @@
     <ClCompile Include="SoundTouch\TDStretch.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
-    <ClCompile Include="dsp_chorus.cpp" />
-    <ClCompile Include="dsp_tremelo.cpp" />
-    <ClCompile Include="dsp_vibrato.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -89,19 +91,13 @@
     <ClInclude Include="circular_buffer.h">
       <Filter>DSP</Filter>
     </ClInclude>
+    <ClInclude Include="dsp_guids.h" />
+    <ClInclude Include="..\foo_sample\resource.h" />
+    <ClInclude Include="dmodsp.h" />
     <ClInclude Include="SoundTouch\AAFilter.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
-    <ClInclude Include="SoundTouch\BPMDetect.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
     <ClInclude Include="SoundTouch\cpu_detect.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\FIFOSampleBuffer.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\FIFOSamplePipe.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
     <ClInclude Include="SoundTouch\FIRFilter.h">
@@ -122,17 +118,9 @@
     <ClInclude Include="SoundTouch\RateTransposer.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
-    <ClInclude Include="SoundTouch\SoundTouch.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTouch\STTypes.h">
-      <Filter>DSP\SoundTouch</Filter>
-    </ClInclude>
     <ClInclude Include="SoundTouch\TDStretch.h">
       <Filter>DSP\SoundTouch</Filter>
     </ClInclude>
-    <ClInclude Include="dsp_guids.h" />
-    <ClInclude Include="..\foo_sample\resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="foo_dsp_effect.rc" />
