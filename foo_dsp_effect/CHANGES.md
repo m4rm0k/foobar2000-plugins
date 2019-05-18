@@ -13,6 +13,7 @@
 * Added DirectX based distortion effect (beta 5)
 * Added DirectX based gargle effect (beta 5)
 * Added DirectX based reverb effect (beta 5)
+* Updated SoundTouch (beta 5)
 
 0.35
 * Added reset functionality to pitch/rate/tempo DSPs
