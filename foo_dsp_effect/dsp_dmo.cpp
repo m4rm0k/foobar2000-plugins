@@ -1683,7 +1683,7 @@ private:
 	bool IsEchoEnabled() { return m_buttonEchoEnabled == NULL || m_buttonEchoEnabled.GetCheck() == BST_CHECKED; }
 
 	void EchoDisable() {
-		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+		static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_distort);
 	}
 
 	void EchoEnable(float params[], bool echo_enabled) {
@@ -1702,7 +1702,7 @@ private:
 			static_api_ptr_t<dsp_config_manager>()->core_enable_dsp(preset, dsp_config_manager::default_insert_last);
 		}
 		else {
-			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_compressor);
+			static_api_ptr_t<dsp_config_manager>()->core_disable_dsp(guid_dmo_distort);
 		}
 
 	}
@@ -2700,9 +2700,9 @@ public:
 		}
 
 
-		ret.m_min_width = MulDiv(400, DPI.cx, 96);
+		ret.m_min_width = MulDiv(320, DPI.cx, 96);
 		ret.m_min_height = MulDiv(130, DPI.cy, 96);
-		ret.m_max_width = MulDiv(400, DPI.cx, 96);
+		ret.m_max_width = MulDiv(320, DPI.cx, 96);
 		ret.m_max_height = MulDiv(130, DPI.cy, 96);
 
 		// Deal with WS_EX_STATICEDGE and alike that we might have picked from host
