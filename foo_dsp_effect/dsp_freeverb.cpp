@@ -1,7 +1,8 @@
 #include <math.h>
-#define _WIN32_WINNT 0x0501
-#include "../SDK/foobar2000.h"
-#include "../ATLHelpers/ATLHelpers.h"
+#include "../helpers/foobar2000+atl.h"
+#include "../../libPPUI/win32_utility.h"
+#include "../../libPPUI/win32_op.h" // WIN32_OP()
+#include "../helpers/BumpableElem.h"
 #include "resource.h"
 #include "freeverb.h"
 #include "dsp_guids.h"

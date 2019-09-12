@@ -1,6 +1,8 @@
-#define _WIN32_WINNT 0x0501
-#include "../SDK/foobar2000.h"
-#include "../ATLHelpers/ATLHelpers.h"
+#include "../helpers/foobar2000+atl.h"
+#include "../../libPPUI/win32_utility.h"
+#include "../../libPPUI/win32_op.h" // WIN32_OP()
+#include "../helpers/BumpableElem.h"
+#include "../helpers/atl-misc.h"// ui_element_impl
 #include "dmodsp.h"
 #include "resource.h"
 

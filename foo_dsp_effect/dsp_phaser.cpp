@@ -1,6 +1,5 @@
-#define _WIN32_WINNT 0x0501
-#include "../SDK/foobar2000.h"
-#include "../ATLHelpers/ATLHelpers.h"
+#include "../helpers/foobar2000+atl.h"
+#include "../helpers/BumpableElem.h"
 #include "resource.h"
 #include "Phaser.h"
 #include "dsp_guids.h"

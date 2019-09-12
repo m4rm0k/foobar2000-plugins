@@ -23,7 +23,6 @@
       <Filter>DSP</Filter>
     </ClCompile>
     <ClCompile Include="dsp_soundtouch.cpp" />
-    <ClCompile Include="dsp_chorus.cpp" />
     <ClCompile Include="dsp_tremelo.cpp" />
     <ClCompile Include="dsp_vibrato.cpp" />
     <ClCompile Include="dmodsp.cpp" />
@@ -70,6 +69,7 @@
     <ClCompile Include="SoundTouch\TDStretch.cpp">
       <Filter>DSP\SoundTouch</Filter>
     </ClCompile>
+    <ClCompile Include="dsp_chorus.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -132,5 +132,8 @@
     <Filter Include="DSP\SoundTouch">
       <UniqueIdentifier>{7691cbb6-307c-48bb-a327-49fc892de188}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@
     <ProjectGuid>{020CEB11-EF4E-400E-971D-A35DB69D7CF9}</ProjectGuid>
     <RootNamespace>rubberband-library</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>7.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -50,7 +50,7 @@
       <PreprocessorDefinitions>__MSVC__;WIN32;_DEBUG;_LIB;NOMINMAX;_USE_MATH_DEFINES;USE_KISSFFT;USE_SPEEX;NO_THREADING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level2</WarningLevel>

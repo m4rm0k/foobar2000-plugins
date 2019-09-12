@@ -1,7 +1,9 @@
-#define _WIN32_WINNT 0x0501
 #define _USE_MATH_DEFINES
-#include "../SDK/foobar2000.h"
-#include "../ATLHelpers/ATLHelpers.h"
+#include "../helpers/foobar2000+atl.h"
+#include "../../libPPUI/win32_utility.h"
+#include "../../libPPUI/win32_op.h" // WIN32_OP()
+#include "../helpers/BumpableElem.h"
+#include "../helpers/atl-misc.h"// ui_element_impl
 #include "resource.h"
 #include "dsp_guids.h"
 
@@ -376,7 +378,7 @@ namespace {
 
 			// Note that we play nicely with separate horizontal & vertical DPI.
 			// Such configurations have not been ever seen in circulation, but nothing stops us from supporting such.
-			CSize DPI = QueryScreenDPIEx(*this);
+			SIZE DPI = QueryScreenDPIEx(*this);
 
 			if (DPI.cx <= 0 || DPI.cy <= 0) { // sanity
 				DPI = CSize(96, 96);
