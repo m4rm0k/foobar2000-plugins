@@ -161,21 +161,12 @@ public:
 
 	virtual void flush() {
 		if (!st_enabled)return;
-		if (p_soundtouch) {
-			p_soundtouch->clear();
-
-		}
 		m_rate = 0;
 		m_ch = 0;
 		m_ch_mask = 0;
 	}
 
 	virtual double get_latency() {
-		if (!st_enabled) return 0;
-		if (p_soundtouch)
-		{
-			return p_soundtouch->numSamples() / (double)m_rate;
-		}
 		return 0;
 	}
 
@@ -489,14 +480,6 @@ public:
 	}
 
 	virtual double get_latency() {
-		if (!st_enabled) return 0;
-		if (rubber && pitch_shifter == 1) {
-			return (double)(rubber->available()*m_ch) / m_rate;
-		}
-		if (p_soundtouch && pitch_shifter == 0)
-		{
-			return p_soundtouch->numSamples() / (double)m_rate;
-		}
 		return 0;
 	}
 
@@ -656,11 +639,6 @@ public:
 	}
 
 	virtual double get_latency() {
-		if (!st_enabled) return 0;
-		if (p_soundtouch)
-		{
-			return p_soundtouch->numSamples() / (double)m_rate;
-		}
 		return 0;
 	}
 
