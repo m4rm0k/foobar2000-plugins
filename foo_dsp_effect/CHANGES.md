@@ -15,6 +15,7 @@
 * Added DirectX based reverb effect (beta 5)
 * Updated SoundTouch (beta 5)
 * Fixed distortion effect activation (beta 6)
+* Fixed seeking when using pitch/tempo/rate effects on fb2k 1.5 >
 
 0.35
 * Added reset functionality to pitch/rate/tempo DSPs
